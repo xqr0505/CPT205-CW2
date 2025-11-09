@@ -41,9 +41,9 @@ const float ROBOT_ROTATE_SPEED = 3.0f;
 
 // --- 机器人状态结构体 ---
 struct Robot {
-    float posX, posY, posZ; 
-    float angleY;           
-    float wheelRotation;    
+    float posX, posY, posZ;
+    float angleY;
+    float wheelRotation;
 };
 
 Robot g_robot;
@@ -53,9 +53,9 @@ Robot g_robot;
 // ==========================================================
 // 机械臂
 float armBaseAngle = 0.0f;
-float armLowerAngle = 45.0f; 
+float armLowerAngle = 45.0f;
 float armUpperAngle = 60.0f;
-float nozzleAngle = 90.0f; 
+float nozzleAngle = 90.0f;
 // 浇水动画的状态
 bool isWatering = false;
 
@@ -69,7 +69,7 @@ const float NOZZLE_LENGTH = 0.2f;
 // ==========================================================
 // 粒子系统相关代码
 // ==========================================================
-#define MAX_PARTICLES 500
+#define MAX_PARTICLES 1000
 const float GRAVITY = 9.8f;
 
 struct Particle {
@@ -90,7 +90,7 @@ void specialKeys(int key, int x, int y);
 void keyboard(unsigned char key, int x, int y);
 void drawFloatingDisc(float radius, float height);
 void drawRobot();
-
+void keyboardUp(unsigned char key, int x, int y);
 // 机械臂相关函数
 void drawArmBase();
 void drawArmJoint();
@@ -119,13 +119,14 @@ int main(int argc, char** argv) {
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
-    glutSpecialFunc(specialKeys); 
-    glutKeyboardFunc(keyboard);  
-    glutIdleFunc(idle);           
+    glutSpecialFunc(specialKeys);
+    glutKeyboardFunc(keyboard);
+    glutKeyboardUpFunc(keyboardUp); // 注册按键松开事件
+    glutIdleFunc(idle);
 
     glutMainLoop();
     return 0;
- }
+}
 
 
 // --- 函数实现 ---
@@ -145,8 +146,8 @@ void initGL() {
 
     float groundLevel = CENTRAL_DISC_Y_POS + (CENTRAL_DISC_HEIGHT / 2.0f);
     g_robot.posY = groundLevel + ROBOT_WHEEL_RADIUS;
-    g_robot.posX = 0.0f;
-    g_robot.posZ = 0.0f;
+    g_robot.posX = 1.0f;
+    g_robot.posZ = 1.0f;
     g_robot.angleY = 0.0f;
     g_robot.wheelRotation = 0.0f;
 
@@ -173,14 +174,14 @@ void drawFloatingDisc(float radius, float height) {
 
 
 void drawRobot() {
-    glPushMatrix(); 
+    glPushMatrix();
 
     glTranslatef(g_robot.posX, g_robot.posY, g_robot.posZ);
     glRotatef(g_robot.angleY, 0.0f, 1.0f, 0.0f);
 
     glPushMatrix();
     {
-        glColor3f(0.8f, 0.2f, 0.2f); 
+        glColor3f(0.8f, 0.2f, 0.2f);
         glScalef(ROBOT_BODY_WIDTH, ROBOT_BODY_HEIGHT, ROBOT_BODY_DEPTH);
         glutSolidCube(1.0f);
     }
@@ -188,7 +189,7 @@ void drawRobot() {
 
     glPushMatrix();
     {
-        glColor3f(0.3f, 0.3f, 0.3f); 
+        glColor3f(0.3f, 0.3f, 0.3f);
         glTranslatef(-ROBOT_BODY_WIDTH / 2.0f - ROBOT_WHEEL_THICKNESS / 2.0f, 0.0f, 0.0f);
         glRotatef(90.0, 0.0, 0.0, 1.0);
         glRotatef(g_robot.wheelRotation, 0.0f, 1.0f, 0.0f);
@@ -199,7 +200,7 @@ void drawRobot() {
 
     glPushMatrix();
     {
-        glColor3f(0.3f, 0.3f, 0.3f); 
+        glColor3f(0.3f, 0.3f, 0.3f);
         glTranslatef(ROBOT_BODY_WIDTH / 2.0f + ROBOT_WHEEL_THICKNESS / 2.0f, 0.0f, 0.0f);
         glRotatef(90.0, 0.0, 0.0, 1.0);
         glRotatef(g_robot.wheelRotation, 0.0f, 1.0f, 0.0f);
@@ -208,7 +209,7 @@ void drawRobot() {
     glPopMatrix();
 
 
-    glPopMatrix(); 
+    glPopMatrix();
 }
 
 // ==========================================================
@@ -219,22 +220,22 @@ void drawRobot() {
 
 void drawArmBase() {
     glPushMatrix();
-    glColor3f(0.2f, 0.2f, 0.2f); 
+    glColor3f(0.2f, 0.2f, 0.2f);
     glScalef(ARM_BASE_RADIUS, ARM_BASE_HEIGHT, ARM_BASE_RADIUS);
-    glutSolidCube(1.0f); 
+    glutSolidCube(1.0f);
     glPopMatrix();
 }
 
 void drawArmJoint() {
     glColor3f(0.2f, 0.2f, 0.2f); // 黑色金属材质
-    glutSolidSphere(ARM_JOINT_RADIUS, 20, 20); 
+    glutSolidSphere(ARM_JOINT_RADIUS, 20, 20);
 }
 
 void drawArmSegment() {
     glPushMatrix();
     glColor3f(0.75f, 0.75f, 0.75f); // 银色材质
     glScalef(ARM_SEGMENT_LENGTH, ARM_SEGMENT_WIDTH, ARM_SEGMENT_WIDTH);
-    glutSolidCube(1.0f); 
+    glutSolidCube(1.0f);
 }
 
 void drawNozzle() {
@@ -248,14 +249,11 @@ void drawNozzle() {
 }
 
 void setBushMaterial() {
-    // 关闭颜色追踪，使用下面定义的完整材质属性
     glDisable(GL_COLOR_MATERIAL);
-
-    // 定义灌木的材质属性
-    GLfloat ambient[] = { 0.1f, 0.2f, 0.1f, 1.0f };  // 环境光反射：深绿色
-    GLfloat diffuse[] = { 0.2f, 0.5f, 0.2f, 1.0f };  // 漫反射：自然的绿色
-    GLfloat specular[] = { 0.2f, 0.3f, 0.2f, 1.0f }; // 镜面反射：轻微的高光
-    GLfloat shininess = 20.0f; // 高光度：不是很亮，模拟叶片质感
+    GLfloat ambient[] = { 0.1f, 0.2f, 0.1f, 1.0f };  
+    GLfloat diffuse[] = { 0.2f, 0.5f, 0.2f, 1.0f }; 
+    GLfloat specular[] = { 0.2f, 0.3f, 0.2f, 1.0f };
+    GLfloat shininess = 20.0f; 
 
     glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
     glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
@@ -266,53 +264,49 @@ void setBushMaterial() {
 // 主机械臂绘制函数
 // ==========================================================
 void drawWateringArm() {
-    glPushMatrix();
+    glPushMatrix(); 
     {
-        glTranslatef(3.0f, CENTRAL_DISC_Y_POS + CENTRAL_DISC_HEIGHT / 2.0f, 3.0f);
+        // 整个机械臂的根位置
+        glTranslatef(0.0f, 0.1f, 0.0f);
 
         // 1. 绘制底座并应用底座的旋转
         glRotatef(armBaseAngle, 0.0f, 1.0f, 0.0f);
         drawArmBase();
 
-        // 2. 绘制下臂
-        glPushMatrix(); 
+        // 2. 变换到下臂
+        glPushMatrix(); // 保存底座的矩阵状态
         {
             glTranslatef(0.0f, ARM_BASE_HEIGHT, 0.0f); 
             glRotatef(armLowerAngle, 0.0f, 0.0f, 1.0f); 
+            drawArmJoint();
 
+            // 绘制下臂臂干
             glPushMatrix();
             glTranslatef(ARM_SEGMENT_LENGTH / 2.0f, 0.0f, 0.0f);
             drawArmSegment();
             glPopMatrix();
 
-            // 3. 绘制上臂
+            // 3. 移动到第二个关节的位置（即上臂的起点）
+            glTranslatef(ARM_SEGMENT_LENGTH, 0.0f, 0.0f);
+            glRotatef(armUpperAngle, 0.0f, 0.0f, 1.0f); 
+            drawArmJoint();
+
+            // 绘制上臂臂干
             glPushMatrix();
-            {
-                glTranslatef(ARM_SEGMENT_LENGTH, 0.0f, 0.0f); 
-                glRotatef(armUpperAngle, 0.0f, 0.0f, 1.0f); 
-                drawArmJoint();
-
-                glPushMatrix();
-                glTranslatef(ARM_SEGMENT_LENGTH / 2.0f, 0.0f, 0.0f);
-                drawArmSegment();
-                glPopMatrix();
-
-                // 4. 绘制喷头
-                glPushMatrix(); 
-                {
-                    glTranslatef(ARM_SEGMENT_LENGTH, 0.0f, 0.0f); 
-                    glRotatef(nozzleAngle, 0.0f, 0.0f, 1.0f); 
-                    drawNozzle();
-                }
-                glPopMatrix();
-            }
+            glTranslatef(ARM_SEGMENT_LENGTH / 2.0f, 0.0f, 0.0f);
+            drawArmSegment();
             glPopMatrix();
+
+            // 4. 移动到喷头的位置（即上臂的末端）
+            glTranslatef(ARM_SEGMENT_LENGTH, 0.0f, 0.0f);
+            glRotatef(nozzleAngle, 0.0f, 0.0f, 1.0f); // 喷头绕Z轴旋转
+            drawNozzle();
+
         }
-        glPopMatrix();
+        glPopMatrix(); // 恢复到底座的矩阵状态
     }
     glPopMatrix(); 
 }
-
 // ==========================================================
 // 粒子系统函数
 // ==========================================================
@@ -323,8 +317,8 @@ void calculateNozzleWorldPosition(float baseRot, float lowerArmRot, float upperA
     glPushMatrix();
     glLoadIdentity();
 
-    // 1. 机械臂基座位置（与drawWateringArm中的位置一致）
-    glTranslatef(3.0f, CENTRAL_DISC_Y_POS + CENTRAL_DISC_HEIGHT / 2.0f, 3.0f);
+    // 1. 机械臂基座位置
+    glTranslatef(0.0f, 0.1f, 0.0f);
 
     // 2. 底座旋转
     glRotatef(baseRot, 0.0f, 1.0f, 0.0f);
@@ -368,7 +362,7 @@ void initParticles() {
     }
 }
 
-void updateParticles(float dt) { 
+void updateParticles(float dt) {
     if (isWatering) {
         GLdouble nozzlePos[3];
         calculateNozzleWorldPosition(armBaseAngle, armLowerAngle, armUpperAngle, nozzlePos);
@@ -376,7 +370,7 @@ void updateParticles(float dt) {
         for (int i = 0; i < MAX_PARTICLES; i++) {
             if (!waterParticles[i].active) {
                 waterParticles[i].active = true;
-                waterParticles[i].life = 1.5f; 
+                waterParticles[i].life = 1.5f;
 
                 waterParticles[i].x = static_cast<float>(nozzlePos[0]);
                 waterParticles[i].y = static_cast<float>(nozzlePos[1]);
@@ -385,7 +379,7 @@ void updateParticles(float dt) {
                 waterParticles[i].vx = (rand() % 100 / 100.0f - 0.5f) * 0.5f;
                 waterParticles[i].vy = -2.0f - (rand() % 100 / 100.0f);
                 waterParticles[i].vz = (rand() % 100 / 100.0f - 0.5f) * 0.5f;
-                break; 
+                break;
             }
         }
     }
@@ -395,7 +389,7 @@ void updateParticles(float dt) {
             waterParticles[i].x += waterParticles[i].vx * dt;
             waterParticles[i].y += waterParticles[i].vy * dt;
             waterParticles[i].z += waterParticles[i].vz * dt;
-            waterParticles[i].vy -= GRAVITY * dt; 
+            waterParticles[i].vy -= GRAVITY * dt;
 
             waterParticles[i].life -= dt;
             if (waterParticles[i].life <= 0.0f || waterParticles[i].y < (CENTRAL_DISC_Y_POS + CENTRAL_DISC_HEIGHT / 2.0f)) { // 落地或生命结束
@@ -407,11 +401,11 @@ void updateParticles(float dt) {
 
 
 void drawWaterParticles() {
-    glEnable(GL_BLEND); 
+    glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_LIGHTING); 
+    glDisable(GL_LIGHTING);
 
-    glColor4f(0.6f, 0.8f, 1.0f, 0.7f); 
+    glColor4f(0.6f, 0.8f, 1.0f, 0.7f);
     glPointSize(3.0f);
 
     glBegin(GL_POINTS);
@@ -432,7 +426,7 @@ void drawWaterParticles() {
 void idle() {
     static int lastTime = glutGet(GLUT_ELAPSED_TIME);
     int currentTime = glutGet(GLUT_ELAPSED_TIME);
-    float dt = (currentTime - lastTime) / 1000.0f; 
+    float dt = (currentTime - lastTime) / 1000.0f;
     lastTime = currentTime;
     updateParticles(dt);
     glutPostRedisplay();
@@ -451,7 +445,7 @@ void display() {
         float angleRad = g_robot.angleY * M_PI / 180.0f;
 
         float camX = g_robot.posX - sin(angleRad) * 4.0f;
-        float camY = g_robot.posY + 2.0f;                
+        float camY = g_robot.posY + 2.0f;
         float camZ = g_robot.posZ - cos(angleRad) * 4.0f;
 
         gluLookAt(camX, camY, camZ,
@@ -522,7 +516,7 @@ void specialKeys(int key, int x, int y) {
     }
     else if (key == GLUT_KEY_RIGHT) {
         g_cameraAngleY -= 5.0f;
-	}
+    }
     glutPostRedisplay();
 }
 
@@ -554,8 +548,8 @@ void keyboard(unsigned char key, int x, int y) {
     else if (key == 'c' || key == 'C') { // 切换视角
         g_isRobotView = !g_isRobotView;
     }
-    else if (key == 'p' || key == 'P') { // 开始/停止浇水
-        isWatering = !isWatering;
+    else if (key == 'p' || key == 'P') { // 按下 p 键开始浇水
+        isWatering = true;
     }
     else if (key == '1') { // 大臂向上
         armLowerAngle += 5.0f;
@@ -595,4 +589,11 @@ void keyboard(unsigned char key, int x, int y) {
     }
 
     glutPostRedisplay();
+}
+
+// 添加新的 keyboardUp 函数，处理按键松开事件
+void keyboardUp(unsigned char key, int x, int y) {
+    if (key == 'p' || key == 'P') { // 松开 p 键停止浇水
+        isWatering = false;
+    }
 }
