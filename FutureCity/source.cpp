@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
     glutReshapeFunc(reshape);
     glutSpecialFunc(specialKeys);
     glutKeyboardFunc(keyboard);
-    glutKeyboardUpFunc(keyboardUp); // 注册按键松开事件
+    glutKeyboardUpFunc(keyboardUp); 
     glutIdleFunc(idle);
 
     glutMainLoop();
@@ -173,50 +173,82 @@ void drawFloatingDisc(float radius, float height) {
 }
 
 
-void drawRobot() {
-    glPushMatrix();
 
-    glTranslatef(g_robot.posX, g_robot.posY, g_robot.posZ);
-    glRotatef(g_robot.angleY, 0.0f, 1.0f, 0.0f);
+/**
+ * @brief 绘制灌木丛
+ */
+void drawBush() {
+    const float t = (1.0f + sqrt(5.0f)) / 2.0f;
+    const float r = 1.0f; 
 
-    glPushMatrix();
-    {
-        glColor3f(0.8f, 0.2f, 0.2f);
-        glScalef(ROBOT_BODY_WIDTH, ROBOT_BODY_HEIGHT, ROBOT_BODY_DEPTH);
-        glutSolidCube(1.0f);
+    const float scale = r / sqrt(1.0f * 1.0f + t * t);
+    const float v1 = 1.0f * scale;
+    const float v2 = t * scale;
+
+    static const GLfloat vertices[12][3] = {
+        { -v1, v2, 0 },{ v1, v2, 0 },{ -v1, -v2, 0 },{ v1, -v2, 0 },
+        { 0, -v1, v2 },{ 0, v1, v2 },{ 0, -v1, -v2 },{ 0, v1, -v2 },
+        { v2, 0, -v1 },{ v2, 0, v1 },{ -v2, 0, -v1 },{ -v2, 0, v1 }
+    };
+
+    static const GLint faces[20][3] = {
+        { 0, 11, 5 },{ 0, 5, 1 },{ 0, 1, 7 },{ 0, 7, 10 },{ 0, 10, 11 },
+        { 1, 5, 9 },{ 5, 11, 4 },{ 11, 10, 2 },{ 10, 7, 6 },{ 7, 1, 8 },
+        { 3, 9, 4 },{ 3, 4, 2 },{ 3, 2, 6 },{ 3, 6, 8 },{ 3, 8, 9 },
+        { 4, 9, 5 },{ 2, 4, 11 },{ 6, 2, 10 },{ 8, 6, 7 },{ 9, 8, 1 }
+    };
+
+
+    for (int i = 0; i < 20; i++) {
+        const GLint v_idx1 = faces[i][0];
+        const GLint v_idx2 = faces[i][1];
+        const GLint v_idx3 = faces[i][2];
+
+        const GLfloat* v1 = vertices[v_idx1];
+        const GLfloat* v2 = vertices[v_idx2];
+        const GLfloat* v3 = vertices[v_idx3];
+
+        if (v1[1] >= 0.0f || v2[1] >= 0.0f || v3[1] >= 0.0f) {
+            glBegin(GL_TRIANGLES);
+            glNormal3fv(v1); glVertex3fv(v1);
+            glNormal3fv(v2); glVertex3fv(v2);
+            glNormal3fv(v3); glVertex3fv(v3);
+            glEnd();
+        }
     }
+}
+
+/**
+ * @brief 绘制花园场景
+ */
+void drawGardenScene() {
+    glColor3f(0.2f, 0.6f, 0.2f); 
+
+    // 绘制第一个灌木
+    glPushMatrix();
+    glTranslatef(-2.0f, 0.0f, 3.0f);
+    glScalef(1.5f, 1.5f, 1.5f);
+    drawBush();
     glPopMatrix();
 
+    // 绘制第二个灌木
     glPushMatrix();
-    {
-        glColor3f(0.3f, 0.3f, 0.3f);
-        glTranslatef(-ROBOT_BODY_WIDTH / 2.0f - ROBOT_WHEEL_THICKNESS / 2.0f, 0.0f, 0.0f);
-        glRotatef(90.0, 0.0, 0.0, 1.0);
-        glRotatef(g_robot.wheelRotation, 0.0f, 1.0f, 0.0f);
-
-        drawFloatingDisc(ROBOT_WHEEL_RADIUS, ROBOT_WHEEL_THICKNESS);
-    }
+    glTranslatef(-3.5f, 0.0f, 2.0f);
+    glScalef(1.2f, 1.2f, 1.2f);
+    drawBush();
     glPopMatrix();
 
+    // 绘制第三个灌木
     glPushMatrix();
-    {
-        glColor3f(0.3f, 0.3f, 0.3f);
-        glTranslatef(ROBOT_BODY_WIDTH / 2.0f + ROBOT_WHEEL_THICKNESS / 2.0f, 0.0f, 0.0f);
-        glRotatef(90.0, 0.0, 0.0, 1.0);
-        glRotatef(g_robot.wheelRotation, 0.0f, 1.0f, 0.0f);
-        drawFloatingDisc(ROBOT_WHEEL_RADIUS, ROBOT_WHEEL_THICKNESS);
-    }
-    glPopMatrix();
-
-
+    glTranslatef(-2.5f, 0.0f, 1.0f);
+    glScalef(0.8f, 0.6f, 0.8f);
+    drawBush();
     glPopMatrix();
 }
 
 // ==========================================================
 // 机械臂组件绘制函数
 // ==========================================================
-
-
 
 void drawArmBase() {
     glPushMatrix();
@@ -236,6 +268,7 @@ void drawArmSegment() {
     glColor3f(0.75f, 0.75f, 0.75f); // 银色材质
     glScalef(ARM_SEGMENT_LENGTH, ARM_SEGMENT_WIDTH, ARM_SEGMENT_WIDTH);
     glutSolidCube(1.0f);
+    glPopMatrix();
 }
 
 void drawNozzle() {
@@ -260,6 +293,7 @@ void setBushMaterial() {
     glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
     glMaterialf(GL_FRONT, GL_SHININESS, shininess);
 }
+
 // ==========================================================
 // 主机械臂绘制函数
 // ==========================================================
@@ -307,6 +341,7 @@ void drawWateringArm() {
     }
     glPopMatrix(); 
 }
+
 // ==========================================================
 // 粒子系统函数
 // ==========================================================
@@ -317,31 +352,37 @@ void calculateNozzleWorldPosition(float baseRot, float lowerArmRot, float upperA
     glPushMatrix();
     glLoadIdentity();
 
-    // 1. 机械臂基座位置
+    // 1. 考虑中央圆盘的位置
+    glTranslatef(0.0f, CENTRAL_DISC_Y_POS, 0.0f);
+    
+    // 2. 机械臂在圆盘表面
+    glTranslatef(0.0f, CENTRAL_DISC_HEIGHT / 2.0f, 0.0f);
+
+    // 3. 机械臂基座位置
     glTranslatef(0.0f, 0.1f, 0.0f);
 
-    // 2. 底座旋转
+    // 4. 底座旋转
     glRotatef(baseRot, 0.0f, 1.0f, 0.0f);
 
-    // 3. 移动到第一个关节位置
+    // 5. 移动到第一个关节位置
     glTranslatef(0.0f, ARM_BASE_HEIGHT, 0.0f);
 
-    // 4. 下臂旋转
+    // 6. 下臂旋转
     glRotatef(lowerArmRot, 0.0f, 0.0f, 1.0f);
 
-    // 5. 移动到第二个关节位置
+    // 7. 移动到第二个关节位置
     glTranslatef(ARM_SEGMENT_LENGTH, 0.0f, 0.0f);
 
-    // 6. 上臂旋转
+    // 8. 上臂旋转
     glRotatef(upperArmRot, 0.0f, 0.0f, 1.0f);
 
-    // 7. 移动到喷头末端
+    // 9. 移动到喷头末端
     glTranslatef(ARM_SEGMENT_LENGTH, 0.0f, 0.0f);
 
-    // 8. 喷头旋转
+    // 10. 喷头旋转
     glRotatef(nozzleAngle, 0.0f, 0.0f, 1.0f);
 
-    // 9. 移动到喷头出水口位置
+    // 11. 移动到喷头出水口位置
     glTranslatef(NOZZLE_LENGTH, 0.0f, 0.0f);
 
     // 获取当前变换矩阵
@@ -421,19 +462,7 @@ void drawWaterParticles() {
 }
 
 /**
- * @brief 更新粒子系统
- */
-void idle() {
-    static int lastTime = glutGet(GLUT_ELAPSED_TIME);
-    int currentTime = glutGet(GLUT_ELAPSED_TIME);
-    float dt = (currentTime - lastTime) / 1000.0f;
-    lastTime = currentTime;
-    updateParticles(dt);
-    glutPostRedisplay();
-}
-
-/**
- * @brief 渲染场景
+ * @brief 渲染场景 - 使用层次化建模
  */
 void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -459,15 +488,77 @@ void display() {
         glRotatef(g_cameraAngleY, 0.0f, 1.0f, 0.0f);
     }
 
+    // ==========================================================
+    // 层次化建模
+    // ==========================================================
+    
+    // 1. 绘制中央圆盘，并保存其坐标系
+    glPushMatrix(); 
+    {
+        glTranslatef(0.0f, CENTRAL_DISC_Y_POS, 0.0f);
+        
+        // 绘制中央圆盘
+        glPushMatrix();
+        glColor3f(0.3f, 0.6f, 0.2f);
+        drawFloatingDisc(CENTRAL_DISC_RADIUS, CENTRAL_DISC_HEIGHT);
+        glPopMatrix();
 
-    // --- 绘制场景 ---
-    glPushMatrix();
-    glTranslatef(0.0f, CENTRAL_DISC_Y_POS, 0.0f);
-    glColor3f(0.3f, 0.6f, 0.2f);
-    drawFloatingDisc(CENTRAL_DISC_RADIUS, CENTRAL_DISC_HEIGHT);
-    glPopMatrix();
+        // 2. 在中央圆盘的坐标系上绘制机器人
+        glPushMatrix();
+        {
+            // 机器人的y坐标需要考虑圆盘高度
+            float robotLocalY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
+            glTranslatef(g_robot.posX, robotLocalY, g_robot.posZ);
+            glRotatef(g_robot.angleY, 0.0f, 1.0f, 0.0f);
 
-    // 绘制周围小圆盘
+            // 绘制机器人身体
+            glPushMatrix();
+            glColor3f(0.8f, 0.2f, 0.2f);
+            glScalef(ROBOT_BODY_WIDTH, ROBOT_BODY_HEIGHT, ROBOT_BODY_DEPTH);
+            glutSolidCube(1.0f);
+            glPopMatrix();
+
+            // 绘制左轮
+            glPushMatrix();
+            glColor3f(0.3f, 0.3f, 0.3f);
+            glTranslatef(-ROBOT_BODY_WIDTH / 2.0f - ROBOT_WHEEL_THICKNESS / 2.0f, 0.0f, 0.0f);
+            glRotatef(90.0, 0.0, 0.0, 1.0);
+            glRotatef(g_robot.wheelRotation, 0.0f, 1.0f, 0.0f);
+            drawFloatingDisc(ROBOT_WHEEL_RADIUS, ROBOT_WHEEL_THICKNESS);
+            glPopMatrix();
+
+            // 绘制右轮
+            glPushMatrix();
+            glColor3f(0.3f, 0.3f, 0.3f);
+            glTranslatef(ROBOT_BODY_WIDTH / 2.0f + ROBOT_WHEEL_THICKNESS / 2.0f, 0.0f, 0.0f);
+            glRotatef(90.0, 0.0, 0.0, 1.0);
+            glRotatef(g_robot.wheelRotation, 0.0f, 1.0f, 0.0f);
+            drawFloatingDisc(ROBOT_WHEEL_RADIUS, ROBOT_WHEEL_THICKNESS);
+            glPopMatrix();
+        }
+        glPopMatrix();
+
+        // 3. 在中央圆盘的坐标系上绘制花园场景
+        glPushMatrix();
+        {
+            // 花园物体在圆盘表面
+            glTranslatef(0.0f, CENTRAL_DISC_HEIGHT / 2.0f, 0.0f);
+            drawGardenScene();
+        }
+        glPopMatrix();
+
+        // 4. 在中央圆盘的坐标系上绘制机械臂
+        glPushMatrix();
+        {
+            // 机械臂基座在圆盘表面
+            glTranslatef(0.0f, CENTRAL_DISC_HEIGHT / 2.0f, 0.0f);
+            drawWateringArm();
+        }
+        glPopMatrix();
+    }
+    glPopMatrix(); // 恢复世界坐标系
+
+    // 5. 绘制周围的小圆盘
     for (int i = 0; i < 5; ++i) {
         glPushMatrix();
         float angle = i * 72.0f;
@@ -478,13 +569,7 @@ void display() {
         glPopMatrix();
     }
 
-    // 绘制机器人
-    drawRobot();
-
-    // 绘制机械臂
-    drawWateringArm();
-
-    // 绘制水粒子
+    // 6. 绘制水粒子
     drawWaterParticles();
 
     glutSwapBuffers();
@@ -525,6 +610,7 @@ void keyboard(unsigned char key, int x, int y) {
     float nextX = g_robot.posX;
     float nextZ = g_robot.posZ;
 
+    // 保存旧角度
     float oldLowerAngle = armLowerAngle;
     float oldUpperAngle = armUpperAngle;
     float oldBaseAngle = armBaseAngle;
@@ -570,18 +656,18 @@ void keyboard(unsigned char key, int x, int y) {
         armBaseAngle -= 5.0f;
     }
 
+    // 检查机械臂喷头是否低于中心圆盘表面
     GLdouble nozzlePos[3];
     calculateNozzleWorldPosition(armBaseAngle, armLowerAngle, armUpperAngle, nozzlePos);
-
     float groundLevel = CENTRAL_DISC_Y_POS + CENTRAL_DISC_HEIGHT / 2.0f;
-
-    if (nozzlePos[1] < groundLevel) {
+    if (nozzlePos[1] < groundLevel + 0.1f) {
+        // 恢复旧角度，阻止本次移动
         armLowerAngle = oldLowerAngle;
         armUpperAngle = oldUpperAngle;
         armBaseAngle = oldBaseAngle;
-        std::cout << "Warning: Nozzle cannot go below ground level!" << std::endl;
     }
 
+    // 移动机器人时的边界检查
     float distanceFromCenter = sqrt(nextX * nextX + nextZ * nextZ);
     if (distanceFromCenter < CENTRAL_DISC_RADIUS - (ROBOT_BODY_WIDTH / 2.0f)) {
         g_robot.posX = nextX;
@@ -591,9 +677,20 @@ void keyboard(unsigned char key, int x, int y) {
     glutPostRedisplay();
 }
 
-// 添加新的 keyboardUp 函数，处理按键松开事件
 void keyboardUp(unsigned char key, int x, int y) {
     if (key == 'p' || key == 'P') { // 松开 p 键停止浇水
         isWatering = false;
     }
+}
+
+/**
+ * @brief 更新粒子系统
+ */
+void idle() {
+    static int lastTime = glutGet(GLUT_ELAPSED_TIME);
+    int currentTime = glutGet(GLUT_ELAPSED_TIME);
+    float dt = (currentTime - lastTime) / 1000.0f;
+    lastTime = currentTime;
+    updateParticles(dt);
+    glutPostRedisplay();
 }
