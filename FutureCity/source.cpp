@@ -5,7 +5,18 @@
 
 #define M_PI 3.1415926535
 
+struct vec3 { float x, y, z; };
 
+// 向量辅助函数
+vec3 vec3_add(vec3 a, vec3 b) { return { a.x + b.x, a.y + b.y, a.z + b.z }; }
+vec3 vec3_sub(vec3 a, vec3 b) { return { a.x - b.x, a.y - b.y, a.z - b.z }; }
+vec3 vec3_scale(vec3 v, float s) { return { v.x * s, v.y * s, v.z * s }; }
+float vec3_length(vec3 v) { return sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
+vec3 vec3_normalize(vec3 v) {
+    float len = vec3_length(v);
+    if (len > 0) return vec3_scale(v, 1.0f / len);
+    return { 0, 0, 0 };
+}
 // --- 全局变量和常量 ---
 
 // 摄像机/场景旋转角度
@@ -19,12 +30,12 @@ int g_windowHeight = 600;
 bool g_isRobotView = false;
 
 // --- 圆盘常量定义 ---
-const float CENTRAL_DISC_RADIUS = 6.0f;
+const float CENTRAL_DISC_RADIUS = 7.0f;
 const float CENTRAL_DISC_HEIGHT = 0.5f;
 const float CENTRAL_DISC_Y_POS = 0.0f;
-const float SURROUND_DISC_RADIUS = 2.5f;
+const float SURROUND_DISC_RADIUS = 3.0f;
 const float SURROUND_DISC_HEIGHT = 0.3f;
-const float SURROUND_DISC_DISTANCE = 10.0f;
+const float SURROUND_DISC_DISTANCE = 12.0f;
 const float surround_heights[] = { 1.0f, -0.5f, 2.5f, -1.5f, 0.7f };
 
 
@@ -199,30 +210,30 @@ void drawBush() {
     };
 
 
+    glBegin(GL_TRIANGLES);
     for (int i = 0; i < 20; i++) {
-        const GLint v_idx1 = faces[i][0];
-        const GLint v_idx2 = faces[i][1];
-        const GLint v_idx3 = faces[i][2];
+        // 获取顶点
+        const GLfloat* v1 = vertices[faces[i][0]];
+        const GLfloat* v2 = vertices[faces[i][1]];
+        const GLfloat* v3 = vertices[faces[i][2]];
 
-        const GLfloat* v1 = vertices[v_idx1];
-        const GLfloat* v2 = vertices[v_idx2];
-        const GLfloat* v3 = vertices[v_idx3];
-
-        if (v1[1] >= 0.0f || v2[1] >= 0.0f || v3[1] >= 0.0f) {
-            glBegin(GL_TRIANGLES);
-            glNormal3fv(v1); glVertex3fv(v1);
-            glNormal3fv(v2); glVertex3fv(v2);
-            glNormal3fv(v3); glVertex3fv(v3);
-            glEnd();
-        }
+        // 直接绘制，无需判断
+        glNormal3fv(v1); glVertex3fv(v1);
+        glNormal3fv(v2); glVertex3fv(v2);
+        glNormal3fv(v3); glVertex3fv(v3);
     }
+    glEnd();
 }
 
 /**
  * @brief 绘制花园场景
  */
 void drawGardenScene() {
-    glColor3f(0.2f, 0.6f, 0.2f); 
+    GLdouble planeEquation[4] = { 0.0, 1.0, 0.0, 0.0 };
+    glColor3f(0.2f, 0.6f, 0.2f);
+    // 开启裁剪平面 
+    glClipPlane(GL_CLIP_PLANE0, planeEquation);
+    glEnable(GL_CLIP_PLANE0);
 
     // 绘制第一个灌木
     glPushMatrix();
@@ -244,7 +255,101 @@ void drawGardenScene() {
     glScalef(0.8f, 0.6f, 0.8f);
     drawBush();
     glPopMatrix();
+
+    glDisable(GL_CLIP_PLANE0);
 }
+
+/**
+ * @brief 绘制一片单独的、带有弧度的花瓣。
+ * @param v_center 花瓣汇集的中心顶点
+ * @param v_edge1 花瓣外边缘的第一个顶点
+ * @param v_edge2 花瓣外边缘的第二个顶点
+ */
+void drawFlowerPetal(vec3 v_center, vec3 v_edge1, vec3 v_edge2) {
+    const int ARC_SEGMENTS = 12;    
+    const float ARC_HEIGHT = 0.5f;  
+
+    // 1. 绘制花瓣的基底三角形
+    glBegin(GL_TRIANGLES);
+    glNormal3f(v_center.x, v_center.y, v_center.z); glVertex3f(v_center.x, v_center.y, v_center.z);
+    glNormal3f(v_edge1.x, v_edge1.y, v_edge1.z); glVertex3f(v_edge1.x, v_edge1.y, v_edge1.z);
+    glNormal3f(v_edge2.x, v_edge2.y, v_edge2.z); glVertex3f(v_edge2.x, v_edge2.y, v_edge2.z);
+    glEnd();
+
+    // 2. 绘制弯曲的瓣面
+    vec3 mid_point = vec3_scale(vec3_add(v_edge1, v_edge2), 0.5f);
+    vec3 arc_direction = vec3_normalize(vec3_sub(mid_point, v_center));
+
+    glBegin(GL_TRIANGLE_STRIP);
+    for (int i = 0; i <= ARC_SEGMENTS; ++i) {
+        float step = (float)i / ARC_SEGMENTS;
+
+        vec3 edge_point = vec3_add(v_edge1, vec3_scale(vec3_sub(v_edge2, v_edge1), step));
+        float arc_offset_magnitude = sin(step * M_PI) * ARC_HEIGHT;
+        vec3 arc_point = vec3_add(edge_point, vec3_scale(arc_direction, arc_offset_magnitude));
+
+        vec3 normal1 = vec3_normalize(edge_point);
+        glNormal3f(normal1.x, normal1.y, normal1.z);
+        glVertex3f(edge_point.x, edge_point.y, edge_point.z);
+
+        vec3 normal2 = vec3_normalize(arc_point);
+        glNormal3f(normal2.x, normal2.y, normal2.z);
+        glVertex3f(arc_point.x, arc_point.y, arc_point.z);
+    }
+    glEnd();
+}
+
+
+void drawFlower(vec3 petalColor) {
+
+    glPushMatrix();
+
+    const float t = (1.0f + sqrt(5.0f)) / 2.0f;
+    const float r = 1.0f / sqrt(1.0f * 1.0f + t * t);
+    const float v1 = 1.0f * r, v2 = t * r;
+
+    static const GLfloat vertices[12][3] = {
+        {-v1, v2, 0}, {v1, v2, 0}, {-v1, -v2, 0}, {v1, -v2, 0},
+        {0, -v1, v2}, {0, v1, v2}, {0, -v1, -v2}, {0, v1, -v2},
+        {v2, 0, -v1}, {v2, 0, v1}, {-v2, 0, -v1}, {-v2, 0, v1}
+    };
+    static const GLint faces[20][3] = {
+        {0, 11, 5}, {0, 5, 1}, {0, 1, 7}, {0, 7, 10}, {0, 10, 11}
+    };
+
+    glColor3f(petalColor.x, petalColor.y, petalColor.z);
+    for (int i = 0; i < 5; i++) {
+        const GLfloat* vC_ptr = vertices[faces[i][0]];
+        const GLfloat* vA_ptr = vertices[faces[i][1]];
+        const GLfloat* vB_ptr = vertices[faces[i][2]];
+        vec3 vC = { vC_ptr[0], vC_ptr[1], vC_ptr[2] };
+        vec3 vA = { vA_ptr[0], vA_ptr[1], vA_ptr[2] };
+        vec3 vB = { vB_ptr[0], vB_ptr[1], vB_ptr[2] };
+
+        drawFlowerPetal(vC, vA, vB);
+    }
+    glPopMatrix();
+}
+void drawFlowerGarden() {
+
+    glPushMatrix();
+    glTranslatef(-0.6f, 0.5f, 2.0f); 
+    glRotatef(120.0f, 1.0f, 0.0f, 0.0f);
+    glRotatef(20.0f, 0.0f, 0.0f, 1.0f);
+    glScalef(0.5f, 0.5f, 0.5f);     
+    drawFlower({ 1.0f, 0.6f, 0.8f }); 
+    glPopMatrix();
+
+
+    glPushMatrix();
+    glTranslatef(-1.6f, 0.6f, 1.4f);
+    glRotatef(120.0f, 1.0f, 0.0f, 0.0f);
+    glRotatef(20.0f, 0.0f, 0.0f, 1.0f);
+    glScalef(0.5f, 0.5f, 0.5f);
+    drawFlower({ 1.0f, 0.6f, 0.8f });
+    glPopMatrix();
+}
+
 
 // ==========================================================
 // 机械臂组件绘制函数
@@ -281,18 +386,6 @@ void drawNozzle() {
     glPopMatrix();
 }
 
-void setBushMaterial() {
-    glDisable(GL_COLOR_MATERIAL);
-    GLfloat ambient[] = { 0.1f, 0.2f, 0.1f, 1.0f };  
-    GLfloat diffuse[] = { 0.2f, 0.5f, 0.2f, 1.0f }; 
-    GLfloat specular[] = { 0.2f, 0.3f, 0.2f, 1.0f };
-    GLfloat shininess = 20.0f; 
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
-    glMaterialf(GL_FRONT, GL_SHININESS, shininess);
-}
 
 // ==========================================================
 // 主机械臂绘制函数
@@ -544,6 +637,7 @@ void display() {
             // 花园物体在圆盘表面
             glTranslatef(0.0f, CENTRAL_DISC_HEIGHT / 2.0f, 0.0f);
             drawGardenScene();
+            drawFlowerGarden();
         }
         glPopMatrix();
 
