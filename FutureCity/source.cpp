@@ -140,6 +140,36 @@ int main(int argc, char** argv) {
 }
 
 
+// --- 材质---
+
+ 
+void setBuildingFrameMaterial() {
+    glDisable(GL_COLOR_MATERIAL);
+    GLfloat ambient[] = { 0.15f, 0.15f, 0.2f, 1.0f };
+    GLfloat diffuse[] = { 0.2f, 0.2f, 0.25f, 1.0f };
+    GLfloat specular[] = { 0.4f, 0.4f, 0.5f, 1.0f };
+    GLfloat shininess = 30.0f;
+    GLfloat emission[] = { 0.0f, 0.0f, 0.0f, 1.0f }; // 确保无自发光
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+    glMaterialf(GL_FRONT, GL_SHININESS, shininess);
+    glMaterialfv(GL_FRONT, GL_EMISSION, emission);
+}
+
+void setGlowingWindowMaterial() {
+    glDisable(GL_COLOR_MATERIAL);
+    GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    GLfloat emission[] = { 0.5f, 0.8f, 1.0f, 1.0f };
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, black);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, black);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, black);
+    glMaterialf(GL_FRONT, GL_SHININESS, 0.0f);
+    glMaterialfv(GL_FRONT, GL_EMISSION, emission);
+
+}
 // --- 函数实现 ---
 
 /**
@@ -386,6 +416,49 @@ void drawNozzle() {
     glPopMatrix();
 }
 
+/**
+ * @brief 绘制一栋带有发光窗户的未来风格建筑。
+ * @param baseSize 建筑底座的边长
+ * @param height 建筑的高度
+ * @param numWindowFloors 窗户的层数
+ */
+void drawFuturisticBuilding(float baseSize, float height, int numWindowFloors) {
+
+    // --- 1. 绘制深灰色的建筑主体框架 ---
+    setBuildingFrameMaterial();
+    glPushMatrix();
+    glTranslatef(0.0f, height / 2.0f, 0.0f); 
+    glScalef(baseSize, height, baseSize);
+    glutSolidCube(1.0f);
+    glPopMatrix();
+
+    // --- 2. 绘制发光的蓝色窗户 ---
+    setGlowingWindowMaterial();
+
+    float windowHeight = height / (float)numWindowFloors * 0.6f; 
+    float floorHeight = height / (float)numWindowFloors;         
+    float windowDepthOffset = baseSize * 0.505f;                
+
+    for (int i = 0; i < numWindowFloors; ++i) {
+        float y_pos = i * floorHeight + floorHeight * 0.2f; 
+
+        // 绘制四面的窗户条
+        for (int side = 0; side < 4; ++side) {
+            glPushMatrix();
+            glRotatef(90.0f * side, 0.0f, 1.0f, 0.0f);
+
+            glTranslatef(0.0f, y_pos, windowDepthOffset);
+
+            glScalef(baseSize * 0.8f, windowHeight, 0.01f); 
+            glutSolidCube(1.0f);
+            glPopMatrix();
+        }
+    }
+
+    glEnable(GL_COLOR_MATERIAL);
+    GLfloat emission[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    glMaterialfv(GL_FRONT, GL_EMISSION, emission);
+}
 
 // ==========================================================
 // 主机械臂绘制函数
@@ -599,7 +672,6 @@ void display() {
         // 2. 在中央圆盘的坐标系上绘制机器人
         glPushMatrix();
         {
-            // 机器人的y坐标需要考虑圆盘高度
             float robotLocalY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
             glTranslatef(g_robot.posX, robotLocalY, g_robot.posZ);
             glRotatef(g_robot.angleY, 0.0f, 1.0f, 0.0f);
@@ -650,17 +722,33 @@ void display() {
         }
         glPopMatrix();
     }
-    glPopMatrix(); // 恢复世界坐标系
+    glPopMatrix(); 
 
-    // 5. 绘制周围的小圆盘
+    const float BUILDING_HEIGHT = 6.0f; 
+    const float BUILDING_BASE = 2.3f;  
+
     for (int i = 0; i < 5; ++i) {
-        glPushMatrix();
-        float angle = i * 72.0f;
-        glRotatef(angle, 0.0f, 1.0f, 0.0f);
-        glTranslatef(0.0f, surround_heights[i], -SURROUND_DISC_DISTANCE);
-        glColor3f(0.5f, 0.5f, 0.5f);
-        drawFloatingDisc(SURROUND_DISC_RADIUS, SURROUND_DISC_HEIGHT);
-        glPopMatrix();
+        glPushMatrix(); 
+        {
+
+            float angle = i * 72.0f;
+            glRotatef(angle, 0.0f, 1.0f, 0.0f);
+            glTranslatef(0.0f, surround_heights[i], -SURROUND_DISC_DISTANCE);
+
+            glColor3f(0.5f, 0.5f, 0.5f);
+            drawFloatingDisc(SURROUND_DISC_RADIUS, SURROUND_DISC_HEIGHT);
+
+            glPushMatrix();
+            {
+
+                glTranslatef(0.0f, SURROUND_DISC_HEIGHT / 2.0f, 0.0f);
+
+
+                drawFuturisticBuilding(BUILDING_BASE, BUILDING_HEIGHT, 15); 
+            }
+            glPopMatrix();
+        }
+        glPopMatrix(); 
     }
 
     // 6. 绘制水粒子
