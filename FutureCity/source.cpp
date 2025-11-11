@@ -25,6 +25,12 @@ float g_cameraAngleY = 0.0f;
 // 窗口尺寸
 int g_windowWidth = 800;
 int g_windowHeight = 600;
+float g_cameraAngleX = 0.0f;  // 新增：上下旋转角度
+float g_zoomFactor = 1.0f;    // 新增：缩放因子
+
+// 鼠标状态
+bool g_mouseLeftDown = false;
+int g_mouseX, g_mouseY;
 
 // 视角模式
 bool g_isRobotView = false;
@@ -77,8 +83,9 @@ const float ARM_SEGMENT_LENGTH = 2.0f;
 const float ARM_SEGMENT_WIDTH = 0.2f;
 const float NOZZLE_RADIUS = 0.1f;
 const float NOZZLE_LENGTH = 0.2f;
+
 // ==========================================================
-// 粒子系统相关代码
+// 粒子系统相关
 // ==========================================================
 #define MAX_PARTICLES 1000
 const float GRAVITY = 9.8f;
@@ -97,11 +104,13 @@ Particle waterParticles[MAX_PARTICLES];
 void initGL();
 void display();
 void reshape(int width, int height);
-void specialKeys(int key, int x, int y);
 void keyboard(unsigned char key, int x, int y);
 void drawFloatingDisc(float radius, float height);
-void drawRobot();
 void keyboardUp(unsigned char key, int x, int y);
+
+void mouse(int button, int state, int x, int y);
+void motion(int x, int y);
+
 // 机械臂相关函数
 void drawArmBase();
 void drawArmJoint();
@@ -130,9 +139,10 @@ int main(int argc, char** argv) {
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
-    glutSpecialFunc(specialKeys);
     glutKeyboardFunc(keyboard);
     glutKeyboardUpFunc(keyboardUp); 
+    glutMouseFunc(mouse);     
+    glutMotionFunc(motion);
     glutIdleFunc(idle);
 
     glutMainLoop();
@@ -149,7 +159,7 @@ void setBuildingFrameMaterial() {
     GLfloat diffuse[] = { 0.2f, 0.2f, 0.25f, 1.0f };
     GLfloat specular[] = { 0.4f, 0.4f, 0.5f, 1.0f };
     GLfloat shininess = 30.0f;
-    GLfloat emission[] = { 0.0f, 0.0f, 0.0f, 1.0f }; // 确保无自发光
+    GLfloat emission[] = { 0.0f, 0.0f, 0.0f, 1.0f }; 
 
     glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
     glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
@@ -366,7 +376,7 @@ void drawFlowerGarden() {
     glTranslatef(-0.6f, 0.5f, 2.0f); 
     glRotatef(120.0f, 1.0f, 0.0f, 0.0f);
     glRotatef(20.0f, 0.0f, 0.0f, 1.0f);
-    glScalef(0.5f, 0.5f, 0.5f);     
+    glScalef(0.4f, 0.4f, 0.4f);     
     drawFlower({ 1.0f, 0.6f, 0.8f }); 
     glPopMatrix();
 
@@ -375,7 +385,7 @@ void drawFlowerGarden() {
     glTranslatef(-1.6f, 0.6f, 1.4f);
     glRotatef(120.0f, 1.0f, 0.0f, 0.0f);
     glRotatef(20.0f, 0.0f, 0.0f, 1.0f);
-    glScalef(0.5f, 0.5f, 0.5f);
+    glScalef(0.3f, 0.3f, 0.3f);
     drawFlower({ 1.0f, 0.6f, 0.8f });
     glPopMatrix();
 }
@@ -507,6 +517,7 @@ void drawWateringArm() {
     }
     glPopMatrix(); 
 }
+
 
 // ==========================================================
 // 粒子系统函数
@@ -649,16 +660,17 @@ void display() {
 
     }
     else {
-        // 全局旋转视角
-        gluLookAt(0.0, 8.0, 20.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-        glRotatef(g_cameraAngleY, 0.0f, 1.0f, 0.0f);
+        // 全局旋转视角，应用鼠标旋转和缩放
+        gluLookAt(0.0, 8.0 * g_zoomFactor, 20.0 * g_zoomFactor, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+        glRotatef(g_cameraAngleX, 1.0f, 0.0f, 0.0f);  // 上下旋转
+        glRotatef(g_cameraAngleY, 0.0f, 1.0f, 0.0f);  // 左右旋转
     }
 
     // ==========================================================
     // 层次化建模
     // ==========================================================
     
-    // 1. 绘制中央圆盘，并保存其坐标系
+
     glPushMatrix(); 
     {
         glTranslatef(0.0f, CENTRAL_DISC_Y_POS, 0.0f);
@@ -669,7 +681,6 @@ void display() {
         drawFloatingDisc(CENTRAL_DISC_RADIUS, CENTRAL_DISC_HEIGHT);
         glPopMatrix();
 
-        // 2. 在中央圆盘的坐标系上绘制机器人
         glPushMatrix();
         {
             float robotLocalY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
@@ -703,20 +714,16 @@ void display() {
         }
         glPopMatrix();
 
-        // 3. 在中央圆盘的坐标系上绘制花园场景
         glPushMatrix();
         {
-            // 花园物体在圆盘表面
             glTranslatef(0.0f, CENTRAL_DISC_HEIGHT / 2.0f, 0.0f);
             drawGardenScene();
             drawFlowerGarden();
         }
         glPopMatrix();
 
-        // 4. 在中央圆盘的坐标系上绘制机械臂
         glPushMatrix();
         {
-            // 机械臂基座在圆盘表面
             glTranslatef(0.0f, CENTRAL_DISC_HEIGHT / 2.0f, 0.0f);
             drawWateringArm();
         }
@@ -724,8 +731,8 @@ void display() {
     }
     glPopMatrix(); 
 
-    const float BUILDING_HEIGHT = 6.0f; 
-    const float BUILDING_BASE = 2.3f;  
+    const float BUILDING_HEIGHT = 6.5f; 
+    const float BUILDING_BASE = 3.5f;  
 
     for (int i = 0; i < 5; ++i) {
         glPushMatrix(); 
@@ -753,7 +760,6 @@ void display() {
 
     // 6. 绘制水粒子
     drawWaterParticles();
-
     glutSwapBuffers();
 }
 
@@ -771,21 +777,46 @@ void reshape(int width, int height) {
     glLoadIdentity();
 }
 
-void specialKeys(int key, int x, int y) {
-    if (key == GLUT_KEY_UP) {
-        g_cameraAngleY += 5.0f;
+
+void mouse(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_DOWN) {
+            g_mouseLeftDown = true;
+            g_mouseX = x;
+            g_mouseY = y;
+        }
+        else if (state == GLUT_UP) {
+            g_mouseLeftDown = false;
+        }
     }
-    else if (key == GLUT_KEY_DOWN) {
-        g_cameraAngleY -= 5.0f;
+    else if (button == 3) {  // 滚轮向上，缩小
+        g_zoomFactor *= 0.9f;
+        if (g_zoomFactor < 0.5f) g_zoomFactor = 0.5f;
+        glutPostRedisplay();
     }
-    else if (key == GLUT_KEY_LEFT) {
-        g_cameraAngleY += 5.0f;
+    else if (button == 4) {  // 滚轮向下，放大
+        g_zoomFactor *= 1.1f;
+        if (g_zoomFactor > 3.0f) g_zoomFactor = 3.0f;
+        glutPostRedisplay();
     }
-    else if (key == GLUT_KEY_RIGHT) {
-        g_cameraAngleY -= 5.0f;
-    }
-    glutPostRedisplay();
 }
+
+
+void motion(int x, int y) {
+    if (g_mouseLeftDown && !g_isRobotView) {  // 只在非机器人视角下生效
+        int dx = x - g_mouseX;
+        int dy = y - g_mouseY;
+        g_cameraAngleY += dx * 0.5f;  // 左右旋转
+        g_cameraAngleX += dy * 0.5f;  // 上下旋转
+        // 限制上下旋转角度，避免翻转
+        if (g_cameraAngleX > 90.0f) g_cameraAngleX = 90.0f;
+        if (g_cameraAngleX < -90.0f) g_cameraAngleX = -90.0f;
+        g_mouseX = x;
+        g_mouseY = y;
+        glutPostRedisplay();
+    }
+}
+
 
 void keyboard(unsigned char key, int x, int y) {
     float angleRad = g_robot.angleY * M_PI / 180.0f;
