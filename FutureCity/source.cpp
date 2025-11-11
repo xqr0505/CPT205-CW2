@@ -2,7 +2,7 @@
 #include <GL/freeglut.h>
 #include <cmath> 
 #include <iostream> 
-
+#include <vector>
 #define M_PI 3.1415926535
 
 struct vec3 { float x, y, z; };
@@ -85,6 +85,28 @@ const float NOZZLE_RADIUS = 0.1f;
 const float NOZZLE_LENGTH = 0.2f;
 
 // ==========================================================
+// 飞行器相关的全局变量和常量
+// ==========================================================
+const float WING_SPAN = 1.2f;          // 机翼从机身伸出的长度
+const float WING_ROOT_CHORD = 0.8f;    // 翼根宽度 (连接机身处)
+const float WING_TIP_CHORD = 0.4f;     // 翼尖宽度
+const float WING_THICKNESS = 0.08f;    // 机翼厚度
+const float STRIPE_THICKNESS = 0.04f;
+const float SKIMMER_LENGTH = 1.5f;
+const float SKIMMER_WIDTH = 0.5f;
+
+// --- 路径和动画 ---
+float g_skimmer1_progress = 0.0f;
+float g_skimmer2_progress = 0.0f;
+const float SKIMMER1_SPEED = 0.8f;  
+const float SKIMMER2_SPEED = 0.65f;
+
+// 存储路径控制点的容器
+std::vector<vec3> g_skimmerPath1;
+std::vector<vec3> g_skimmerPath2;
+
+
+// ==========================================================
 // 粒子系统相关
 // ==========================================================
 #define MAX_PARTICLES 1000
@@ -118,6 +140,9 @@ void drawArmSegment();
 void drawNozzle();
 void drawWateringArm();
 
+// 飞行器相关函数
+void initPaths();
+
 // 粒子系统相关函数
 void initParticles();
 void updateParticles(float dt);
@@ -136,7 +161,7 @@ int main(int argc, char** argv) {
     glutCreateWindow("Floating Islands Scene with Robot");
 
     initGL();
-
+    initPaths();
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
@@ -518,7 +543,235 @@ void drawWateringArm() {
     glPopMatrix(); 
 }
 
+// ==========================================================
+// B. 添加飞行器的材质和绘制函数
+// ==========================================================
 
+
+
+/**
+ * @brief 设置发光的蓝色条带材质。
+ */
+void setGlowingStripeMaterial() {
+    glDisable(GL_COLOR_MATERIAL);
+    GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    GLfloat emission[] = { 0.5f, 0.8f, 1.0f, 1.0f }; 
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, black);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, black);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, black);
+    glMaterialf(GL_FRONT, GL_SHININESS, 0.0f);
+    glMaterialfv(GL_FRONT, GL_EMISSION, emission);
+}
+
+
+
+/**
+ * @brief 绘制一个从原点沿X轴正方向伸出的机翼。
+ */
+void drawWing() {
+    glBegin(GL_QUADS);
+
+    // 上表面
+    glNormal3f(0.0f, 1.0f, 0.0f);
+    glVertex3f(0.0f, WING_THICKNESS / 2.0f, -WING_ROOT_CHORD / 2.0f);
+    glVertex3f(WING_SPAN, WING_THICKNESS / 2.0f, -WING_TIP_CHORD / 2.0f);
+    glVertex3f(WING_SPAN, WING_THICKNESS / 2.0f, WING_TIP_CHORD / 2.0f);
+    glVertex3f(0.0f, WING_THICKNESS / 2.0f, WING_ROOT_CHORD / 2.0f);
+
+    // 下表面
+    glNormal3f(0.0f, -1.0f, 0.0f);
+    glVertex3f(0.0f, -WING_THICKNESS / 2.0f, WING_ROOT_CHORD / 2.0f);
+    glVertex3f(WING_SPAN, -WING_THICKNESS / 2.0f, WING_TIP_CHORD / 2.0f);
+    glVertex3f(WING_SPAN, -WING_THICKNESS / 2.0f, -WING_TIP_CHORD / 2.0f);
+    glVertex3f(0.0f, -WING_THICKNESS / 2.0f, -WING_ROOT_CHORD / 2.0f);
+
+    // 翼尖
+    glNormal3f(1.0f, 0.0f, 0.0f);
+    glVertex3f(WING_SPAN, WING_THICKNESS / 2.0f, -WING_TIP_CHORD / 2.0f);
+    glVertex3f(WING_SPAN, -WING_THICKNESS / 2.0f, -WING_TIP_CHORD / 2.0f);
+    glVertex3f(WING_SPAN, -WING_THICKNESS / 2.0f, WING_TIP_CHORD / 2.0f);
+    glVertex3f(WING_SPAN, WING_THICKNESS / 2.0f, WING_TIP_CHORD / 2.0f);
+
+    // 后缘
+    glNormal3f(0.0f, 0.0f, 1.0f);
+    glVertex3f(WING_SPAN, WING_THICKNESS / 2.0f, WING_TIP_CHORD / 2.0f);
+    glVertex3f(WING_SPAN, -WING_THICKNESS / 2.0f, WING_TIP_CHORD / 2.0f);
+    glVertex3f(0.0f, -WING_THICKNESS / 2.0f, WING_ROOT_CHORD / 2.0f);
+    glVertex3f(0.0f, WING_THICKNESS / 2.0f, WING_ROOT_CHORD / 2.0f);
+
+    // 前缘
+    glNormal3f(0.0f, 0.0f, -1.0f);
+    glVertex3f(0.0f, WING_THICKNESS / 2.0f, -WING_ROOT_CHORD / 2.0f);
+    glVertex3f(0.0f, -WING_THICKNESS / 2.0f, -WING_ROOT_CHORD / 2.0f);
+    glVertex3f(WING_SPAN, -WING_THICKNESS / 2.0f, -WING_TIP_CHORD / 2.0f);
+    glVertex3f(WING_SPAN, WING_THICKNESS / 2.0f, -WING_TIP_CHORD / 2.0f);
+
+    // 翼根
+    glNormal3f(-1.0f, 0.0f, 0.0f);
+    glVertex3f(0.0f, WING_THICKNESS / 2.0f, WING_ROOT_CHORD / 2.0f);
+    glVertex3f(0.0f, -WING_THICKNESS / 2.0f, WING_ROOT_CHORD / 2.0f);
+    glVertex3f(0.0f, -WING_THICKNESS / 2.0f, -WING_ROOT_CHORD / 2.0f);
+    glVertex3f(0.0f, WING_THICKNESS / 2.0f, -WING_ROOT_CHORD / 2.0f);
+
+
+    glEnd();
+}
+
+/**
+ * @brief 在机身特定 Z 轴位置绘制一个发光的环。
+ * @param z_position 环的中心 Z 坐标。
+ * @param thickness 环的厚度 (沿 Z 轴)。
+ */
+void drawGlowingRing(float z_position, float thickness) {
+    const int SEGMENTS = 24; 
+    const float RING_OFFSET = 0.03f; 
+    float z_ratio = z_position / SKIMMER_LENGTH;
+    float fuselage_radius_at_z = SKIMMER_WIDTH * sqrt(1.0f - z_ratio * z_ratio);
+    float ring_radius = fuselage_radius_at_z + RING_OFFSET;
+
+    glBegin(GL_QUAD_STRIP);
+    for (int i = 0; i <= SEGMENTS; ++i) {
+        float angle = 2.0f * M_PI * (float)i / SEGMENTS;
+        float x = cos(angle);
+        float y = sin(angle);
+
+        vec3 normal = { x, y, 0.0f }; 
+        normal = vec3_normalize(normal);
+
+        // 后顶点
+        glNormal3f(normal.x, normal.y, normal.z);
+        glVertex3f(x * ring_radius, y * ring_radius, z_position - thickness / 2.0f);
+
+        // 前顶点
+        glNormal3f(normal.x, normal.y, normal.z);
+        glVertex3f(x * ring_radius, y * ring_radius, z_position + thickness / 2.0f);
+    }
+    glEnd();
+}
+
+/**
+ * @brief 绘制一个由机身、机翼和发光条带组成的、重新设计的飞行器。
+ */
+void drawSkimmer() {
+    // 机身 
+
+    glPushMatrix();
+    glColor3f(0.2f, 0.2f, 0.2f);
+    glScalef(SKIMMER_WIDTH, SKIMMER_WIDTH, SKIMMER_LENGTH); 
+    glutSolidSphere(1.0, 16, 12);
+    glPopMatrix();
+
+    // 机翼 
+    // 右翼
+    glPushMatrix();
+    {
+        glTranslatef(SKIMMER_WIDTH * 0.5f, 0.0f, 0.0f);
+        glRotatef(5.0f, 0.0f, 0.0f, 1.0f);
+        drawWing();
+    }
+    glPopMatrix();
+
+    // 左翼
+    glPushMatrix();
+    {
+        glTranslatef(-SKIMMER_WIDTH * 0.5f, 0.0f, 0.0f);
+        glRotatef(5.0f, 0.0f, 0.0f, 1.0f);
+        glScalef(-1.0f, 1.0f, 1.0f);
+
+        glFrontFace(GL_CW); 
+        drawWing();
+        glFrontFace(GL_CCW); 
+    }
+    glPopMatrix();
+    setGlowingStripeMaterial();
+    const float stripe_thickness = 0.2f;
+
+    // 第一个环
+    drawGlowingRing(SKIMMER_LENGTH * 0.3f, stripe_thickness);
+
+    // 第二个环
+    drawGlowingRing(SKIMMER_LENGTH * -0.3f, stripe_thickness);
+
+
+    glEnable(GL_COLOR_MATERIAL);
+    GLfloat emission[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    glMaterialfv(GL_FRONT, GL_EMISSION, emission);
+
+
+}
+// ==========================================================
+// C. 添加路径计算函数
+// ==========================================================
+
+/**
+ * @brief 在Catmull-Rom样条曲线的单个线段上进行插值。
+ * @param p0, p1, p2, p3 四个控制点，曲线在 p1 和 p2 之间生成。
+ * @param t 插值因子，范围 [0, 1]。
+ * @return 返回在曲线上的插值点。
+ */
+vec3 getCatmullRomPoint(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t) {
+    vec3 result;
+    float t2 = t * t;
+    float t3 = t2 * t;
+
+    result.x = 0.5f * ((2.0f * p1.x) +
+        (-p0.x + p2.x) * t +
+        (2.0f * p0.x - 5.0f * p1.x + 4.0f * p2.x - p3.x) * t2 +
+        (-p0.x + 3.0f * p1.x - 3.0f * p2.x + p3.x) * t3);
+
+    result.y = 0.5f * ((2.0f * p1.y) +
+        (-p0.y + p2.y) * t +
+        (2.0f * p0.y - 5.0f * p1.y + 4.0f * p2.y - p3.y) * t2 +
+        (-p0.y + 3.0f * p1.y - 3.0f * p2.y + p3.y) * t3);
+
+    result.z = 0.5f * ((2.0f * p1.z) +
+        (-p0.z + p2.z) * t +
+        (2.0f * p0.z - 5.0f * p1.z + 4.0f * p2.z - p3.z) * t2 +
+        (-p0.z + 3.0f * p1.z - 3.0f * p2.z + p3.z) * t3);
+
+    return result;
+}
+
+/**
+ * @brief 从一个完整的点集中获取样条曲线上的点。
+ * @param progress 沿整个路径的进度 (例如 2.5 表示在第2个线段的中点)。
+ * @param path 控制点的向量。
+ * @return 返回在完整路径上的插值点。
+ */
+vec3 getPointOnPath(float progress, const std::vector<vec3>& path) {
+    if (path.size() < 4) return { 0, 0, 0 }; 
+
+    int numPoints = path.size();
+    int p1_idx = (int)progress; 
+    float t = progress - p1_idx;      
+
+    int p0_idx = (p1_idx - 1 + numPoints) % numPoints;
+    int p2_idx = (p1_idx + 1) % numPoints;
+    int p3_idx = (p1_idx + 2) % numPoints;
+
+    return getCatmullRomPoint(path[p0_idx], path[p1_idx], path[p2_idx], path[p3_idx], t);
+}
+
+void initPaths() {
+    float r = SURROUND_DISC_DISTANCE;
+    // --- 路径 1 ---
+    g_skimmerPath1.push_back({ r + 8.0f, 3.0f, 0.0f });      
+    g_skimmerPath1.push_back({ 0.0f, 6.0f, r + 6.0f }); 
+    g_skimmerPath1.push_back({ -r + 7.0f, 4.0f, r - 8.0f });
+    g_skimmerPath1.push_back({ -r - 4.0f, 5.0f, 0.0f });    
+    g_skimmerPath1.push_back({ -r, 6.0f, -r + 2.0f });
+    g_skimmerPath1.push_back({ 0.0f, 10.0f, -r });
+
+
+    // --- 路径 2 ---
+    g_skimmerPath2.push_back({ r - 7.0f, 3.0f, 0.0f });
+    g_skimmerPath2.push_back({ 0.0f, 6.0f, r + 3.0f });
+    g_skimmerPath2.push_back({ -r - 8.0f, 4.0f, r - 8.0f });
+    g_skimmerPath2.push_back({ -r - 4.0f, 6.0f, 0.0f });
+    g_skimmerPath2.push_back({ -r, 6.0f, -r + 1.0f });
+    g_skimmerPath2.push_back({ 1.0f, 3.0f, -r - 5.0f });
+}
 // ==========================================================
 // 粒子系统函数
 // ==========================================================
@@ -760,6 +1013,72 @@ void display() {
 
     // 6. 绘制水粒子
     drawWaterParticles();
+
+    // 7. 绘制飞行器
+    glDisable(GL_LIGHTING);  
+    glLineWidth(2.0f);  
+    glColor3f(0.5f, 0.6f, 0.9f);
+    // 绘制路径1
+    if (!g_skimmerPath1.empty()) {
+        glBegin(GL_LINE_STRIP);
+        for (float t = 0.0f; t < g_skimmerPath1.size(); t += 0.1f) {  
+            vec3 point = getPointOnPath(t, g_skimmerPath1);
+            glVertex3f(point.x, point.y, point.z);
+        }
+        glEnd();
+    }
+    glColor3f(0.95f, 0.4f, 0.1f);
+    // 绘制路径2
+    if (!g_skimmerPath2.empty()) {
+        glBegin(GL_LINE_STRIP);
+        for (float t = 0.0f; t < g_skimmerPath2.size(); t += 0.1f) { 
+            vec3 point = getPointOnPath(t, g_skimmerPath2);
+            glVertex3f(point.x, point.y, point.z);
+        }
+        glEnd();
+    }
+    glEnable(GL_LIGHTING);  
+    glLineWidth(1.0f);  
+
+    vec3 currentPos, nextPos, direction;
+    float next_progress;
+
+    // --- 绘制第一个飞行器 ---
+    currentPos = getPointOnPath(g_skimmer1_progress, g_skimmerPath1);
+    next_progress = g_skimmer1_progress + 0.01f; 
+    if (next_progress >= g_skimmerPath1.size()) next_progress -= g_skimmerPath1.size();
+    nextPos = getPointOnPath(next_progress, g_skimmerPath1);
+    direction = vec3_normalize(vec3_sub(nextPos, currentPos));
+
+    glPushMatrix();
+    {
+        glTranslatef(currentPos.x, currentPos.y, currentPos.z);
+        float yaw = atan2(direction.x, direction.z) * 180.0 / M_PI;
+        float pitch = asin(-direction.y) * 180.0 / M_PI;
+        glRotatef(yaw, 0.0f, 1.0f, 0.0f);
+        glRotatef(pitch, 1.0f, 0.0f, 0.0f);
+        drawSkimmer();
+    }
+    glPopMatrix();
+
+
+    // --- 绘制第二个飞行器 ---
+    currentPos = getPointOnPath(g_skimmer2_progress, g_skimmerPath2);
+    next_progress = g_skimmer2_progress + 0.01f; 
+    if (next_progress >= g_skimmerPath2.size()) next_progress -= g_skimmerPath2.size();
+    nextPos = getPointOnPath(next_progress, g_skimmerPath2);
+    direction = vec3_normalize(vec3_sub(nextPos, currentPos));
+
+    glPushMatrix();
+    {
+        glTranslatef(currentPos.x, currentPos.y, currentPos.z);
+        float yaw = atan2(direction.x, direction.z) * 180.0 / M_PI;
+        float pitch = asin(-direction.y) * 180.0 / M_PI;
+        glRotatef(yaw, 0.0f, 1.0f, 0.0f);
+        glRotatef(pitch, 1.0f, 0.0f, 0.0f);
+        drawSkimmer();
+    }
+    glPopMatrix();
     glutSwapBuffers();
 }
 
@@ -904,6 +1223,20 @@ void idle() {
     int currentTime = glutGet(GLUT_ELAPSED_TIME);
     float dt = (currentTime - lastTime) / 1000.0f;
     lastTime = currentTime;
+
     updateParticles(dt);
+
+    // 更新飞行器1的进度，并处理循环
+    g_skimmer1_progress += SKIMMER1_SPEED * dt;
+    if (g_skimmer1_progress >= g_skimmerPath1.size()) {
+        g_skimmer1_progress -= g_skimmerPath1.size();
+    }
+
+    // 更新飞行器2的进度，并处理循环
+    g_skimmer2_progress += SKIMMER2_SPEED * dt;
+    if (g_skimmer2_progress >= g_skimmerPath2.size()) {
+        g_skimmer2_progress -= g_skimmerPath2.size();
+    }
+
     glutPostRedisplay();
 }
