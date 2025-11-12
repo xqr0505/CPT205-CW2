@@ -103,7 +103,7 @@ struct Particle {
 
 // ==========================================================
 // GLOBAL STATE
-// ==========================================================
+// =========================================================
 
 // Window and camera state
 int g_windowWidth = 800;
@@ -118,6 +118,11 @@ bool g_isRobotView = false;
 // Robot state
 Robot g_robot;
 //float g_robotCameraAngleY = 0.0f;
+bool g_robotLightOn = true;         // 车灯开关状态
+float g_robotLightBrightness = 0.8f;   // 车灯亮度 (0.0 到 1.0)
+
+// Global lighting state
+bool g_envLightOn = true;
 
 // Robotic arm state
 float armBaseAngle = 0.0f;
@@ -200,6 +205,122 @@ void drawWaterParticles();
 
 // Camera
 void setupCamera();
+
+// ==========================================================
+// ROBOT LIGHTING CALCULATION FUNCTIONS
+// ==========================================================
+
+/**
+ * @brief Calculate the world position of the robot's headlight.
+ * The light emanates from the camera head position.
+ */
+void calculateRobotLightWorldPosition(GLdouble outPos[3]) {
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Navigate to robot position
+    float robotGroundY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
+    glTranslatef(g_robot.posX, robotGroundY, g_robot.posZ);
+    glRotatef(g_robot.angleY, 0.0f, 1.0f, 0.0f);
+    
+    // Navigate to camera head position
+    glTranslatef(0.0f, ROBOT_CHASSIS_HEIGHT / 2.0f + ROBOT_CAMERA_Y_OFFSET, 0.0f);
+    
+    // Move slightly forward from camera center
+    glTranslatef(0.0f, 0.0f, ROBOT_CAMERA_RADIUS);
+
+    GLdouble matrix[16];
+    glGetDoublev(GL_MODELVIEW_MATRIX, matrix);
+    outPos[0] = matrix[12];
+    outPos[1] = matrix[13];
+    outPos[2] = matrix[14];
+
+    glPopMatrix();
+}
+
+/**
+ * @brief Calculate the direction vector of the robot's spotlight.
+ * The light points in the direction the robot is facing.
+ */
+void calculateRobotLightWorldDirection(GLdouble outDir[3]) {
+    float angleRad = g_robot.angleY * M_PI / 180.0f;
+    
+    // Direction vector in world space (robot's forward direction)
+    outDir[0] = sin(angleRad);
+    outDir[1] = 0.0f;  // Horizontal spotlight
+    outDir[2] = cos(angleRad);
+}
+
+/**
+ * @brief Setup all lights in the scene (global light + robot spotlight).
+ * Should be called in display() before rendering.
+ */
+void setupLights() {
+    // --- Setup LIGHT0 (Main global ambient light) ---
+    if (g_envLightOn) {
+        glEnable(GL_LIGHT0);
+        GLfloat light0_position[] = { 4.0f, 8.0f, 6.0f, 1.0f };
+        glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
+    }
+    else {
+        glDisable(GL_LIGHT0);
+    }
+
+
+    // --- Setup LIGHT1 (Robot's spotlight) ---
+    if (g_robotLightOn) {
+        glEnable(GL_LIGHT1);
+
+        // Calculate robot's world position
+        float robotGroundY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
+        float angleRad = g_robot.angleY * M_PI / 180.0f;
+
+        // Light position: at the camera head, in world coordinates
+        GLfloat lightPosX = g_robot.posX + sin(angleRad) * ROBOT_CAMERA_RADIUS;
+        GLfloat lightPosY = robotGroundY + (ROBOT_CHASSIS_HEIGHT / 2.0f) + ROBOT_CAMERA_Y_OFFSET;
+        GLfloat lightPosZ = g_robot.posZ + cos(angleRad) * ROBOT_CAMERA_RADIUS;
+
+        GLfloat light1_position[] = { lightPosX, lightPosY, lightPosZ, 1.0f };
+
+        // Light direction: pointing forward in the direction the robot faces
+        GLfloat light1_direction[] = {
+            sin(angleRad),
+            0.0f,  // Horizontal spotlight
+            cos(angleRad)
+        };
+
+        // Set light properties
+        glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
+        glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, light1_direction);
+        glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 35.0f);      // Spotlight cone angle (degrees)
+        glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, 15.0f);    // Spotlight focus
+
+        // Set light attenuation
+        glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, 0.5f);
+        glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, 0.08f);
+        glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, 0.01f);
+
+        // Calculate light color based on brightness
+        GLfloat light1_diffuse[] = { 1.0f, 0.9f, 0.7f, 1.0f };  // Warm white color
+        light1_diffuse[0] *= g_robotLightBrightness;
+        light1_diffuse[1] *= g_robotLightBrightness;
+        light1_diffuse[2] *= g_robotLightBrightness;
+
+        GLfloat light1_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };  // Spotlights typically have no ambient
+        GLfloat light1_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        light1_specular[0] *= g_robotLightBrightness;
+        light1_specular[1] *= g_robotLightBrightness;
+        light1_specular[2] *= g_robotLightBrightness;
+
+        glLightfv(GL_LIGHT1, GL_AMBIENT, light1_ambient);
+        glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_diffuse);
+        glLightfv(GL_LIGHT1, GL_SPECULAR, light1_specular);
+    }
+    else {
+        glDisable(GL_LIGHT1);
+    }
+}
 
 // ==========================================================
 // MATERIAL FUNCTIONS
@@ -292,7 +413,7 @@ void drawBush() {
     static const GLfloat vertices[12][3] = {
         { -v1, v2, 0 },{ v1, v2, 0 },{ -v1, -v2, 0 },{ v1, -v2, 0 },
         { 0, -v1, v2 },{ 0, v1, v2 },{ 0, -v1, -v2 },{ 0, v1, -v2 },
-        { v2, 0, -v1 },{ v2, 0, v1 },{ -v2, 0, -v1 },{ -v2, 0, v1 }
+        { v2, 0, -v1 },{ v2, 0, v1 },{-v2, 0, -v1 },{-v2, 0, v1 }
     };
 
     static const GLint faces[20][3] = {
@@ -764,21 +885,41 @@ void drawRobotWheel() {
  * @brief 绘制机器人的摄像头头部。
  */
 void drawRobotCameraHead() {
-    // ---  方形的摄像头主体 ---
+    // --- Square camera body ---
     float cubeSize = ROBOT_CAMERA_RADIUS * 2.0f;
     drawCube(cubeSize, cubeSize, cubeSize);
 
-    // --- 圆形镜头 ---
+    // --- Circular lens with glow effect ---
     glPushMatrix();
     {
-        glColor3f(0.1f, 0.1f, 0.1f);
         glTranslatef(0.0f, 0.0f, ROBOT_CAMERA_RADIUS + 0.01f);
+
+        // Apply glow material based on light brightness
+        if (g_robotLightOn && g_robotLightBrightness > 0.0f) {
+            // Interpolate between dim and bright colors
+            float startR = 0.5f, startG = 0.5f, startB = 0.45f;  // Dim color
+            float endR = 1.0f, endG = 0.9f, endB = 0.7f;         // Bright color
+
+            // Linear interpolation based on brightness
+            float r = startR + g_robotLightBrightness * (endR - startR);
+            float g = startG + g_robotLightBrightness * (endG - startG);
+            float b = startB + g_robotLightBrightness * (endB - startB);
+
+            GLfloat emissionColor[] = { r, g, b, 1.0f };
+            setGlowingMaterial(emissionColor);
+        }
+        else {
+            // Dark lens when light is off
+            glColor3f(0.1f, 0.1f, 0.1f);
+        }
 
         GLUquadric* quad = gluNewQuadric();
         gluDisk(quad, 0, ROBOT_CAMERA_RADIUS * 0.6f, 20, 1); 
         gluDeleteQuadric(quad);
     }
     glPopMatrix();
+    
+    resetMaterial();
 }
 
 /**
@@ -1013,6 +1154,7 @@ void display() {
 
     setupCamera();
 
+    setupLights();
     // Central disc and its contents (hierarchical modeling)
     glPushMatrix();
     {
@@ -1031,8 +1173,7 @@ void display() {
             glTranslatef(g_robot.posX, robotGroundY, g_robot.posZ);
             drawRobot();
         }
-        glPopMatrix(); // <-- 结束机器人的变换
-
+        glPopMatrix();
 
         // Garden scene on disc surface
         glPushMatrix();
@@ -1176,6 +1317,18 @@ void keyboard(unsigned char key, int x, int y) {
     else if (key == 't' || key == 'T') {
         g_showFlightPath = !g_showFlightPath;
     }
+    // Robot light control
+    else if (key == 'l' || key == 'L') {
+        g_envLightOn = !g_envLightOn;
+    }
+    else if (key == '+' || key == '=') {
+        g_robotLightBrightness += 0.1f;
+        if (g_robotLightBrightness > 1.0f) g_robotLightBrightness = 1.0f;
+    }
+    else if (key == '-' || key == '_') {
+        g_robotLightBrightness -= 0.1f;
+        if (g_robotLightBrightness < 0.0f) g_robotLightBrightness = 0.0f;
+    }
     // Arm control
     else if (key == '1') {
         armLowerAngle += 5.0f;
@@ -1195,7 +1348,6 @@ void keyboard(unsigned char key, int x, int y) {
     else if (key == '6') {
         armBaseAngle -= 5.0f;
     }
-
 
     // Validate arm position
     GLdouble nozzlePos[3];
@@ -1255,8 +1407,6 @@ void initGL() {
     glEnable(GL_LIGHT0);
     glEnable(GL_COLOR_MATERIAL);
 
-    GLfloat light_pos[] = { 4.0f, 8.0f, 6.0f, 1.0f };
-    glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 
     // Initialize robot position
     float groundLevel = CENTRAL_DISC_Y_POS + (CENTRAL_DISC_HEIGHT / 2.0f);
