@@ -302,12 +302,12 @@ void setupLights() {
         glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, 0.01f);
 
         // Calculate light color based on brightness
-        GLfloat light1_diffuse[] = { 1.0f, 0.9f, 0.7f, 1.0f };  // Warm white color
+        GLfloat light1_diffuse[] = { 1.0f, 0.9f, 0.7f, 1.0f };  
         light1_diffuse[0] *= g_robotLightBrightness;
         light1_diffuse[1] *= g_robotLightBrightness;
         light1_diffuse[2] *= g_robotLightBrightness;
 
-        GLfloat light1_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };  // Spotlights typically have no ambient
+        GLfloat light1_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };  
         GLfloat light1_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
         light1_specular[0] *= g_robotLightBrightness;
         light1_specular[1] *= g_robotLightBrightness;
@@ -354,9 +354,9 @@ void setGlowingMaterial(const GLfloat* emissionColor) {
 void setSkimmerBodyMaterial() {
     GLfloat ambient[] = { 0.1f, 0.1f, 0.15f, 1.0f };
     GLfloat diffuse[] = { 0.85f, 0.85f, 0.95f, 1.0f };
-    GLfloat specular[] = { 0.3f, 0.3f, 0.4f, 1.0f };
+    GLfloat specular[] = { 0.1f, 0.1f, 0.1f, 1.0f };
     GLfloat emission[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    setMaterial(ambient, diffuse, specular, 25.0f, emission);
+    setMaterial(ambient, diffuse, specular, 3.0f, emission);
 }
 
 // Reset to default material
@@ -370,17 +370,20 @@ void resetMaterial() {
 // PRIMITIVE DRAWING FUNCTIONS
 // ==========================================================
 
-// Draw a floating disc (cylinder with top and bottom caps)
+// Draw a floating disc 
 void drawFloatingDisc(float radius, float height) {
     GLUquadric* quadric = gluNewQuadric();
     gluQuadricNormals(quadric, GLU_SMOOTH);
     glPushMatrix();
     glTranslatef(0.0f, -height / 2.0f, 0.0f);
     glRotatef(90.0f, -1.0f, 0.0f, 0.0f);
-    gluDisk(quadric, 0, radius, 32, 1);
-    gluCylinder(quadric, radius, radius, height, 32, 5);
+
+    gluDisk(quadric, 0, radius, 80, 20);
+    gluCylinder(quadric, radius, radius, height, 80, 10);
+
     glTranslatef(0.0f, 0.0f, height);
-    gluDisk(quadric, 0, radius, 32, 1);
+    gluDisk(quadric, 0, radius, 80, 20);
+
     glPopMatrix();
     gluDeleteQuadric(quadric);
 }
@@ -1323,7 +1326,7 @@ void keyboard(unsigned char key, int x, int y) {
     }
     else if (key == '+' || key == '=') {
         g_robotLightBrightness += 0.1f;
-        if (g_robotLightBrightness > 1.0f) g_robotLightBrightness = 1.0f;
+        if (g_robotLightBrightness > 3.0f) g_robotLightBrightness = 1.0f;
     }
     else if (key == '-' || key == '_') {
         g_robotLightBrightness -= 0.1f;
