@@ -43,11 +43,14 @@ const float SURROUND_DISC_DISTANCE = 12.0f;
 const float surround_heights[] = { 1.0f, -0.5f, 2.5f, -1.5f, 0.7f };
 
 // Robot constants
-const float ROBOT_BODY_WIDTH = 1.2f;
-const float ROBOT_BODY_HEIGHT = 1.0f;
-const float ROBOT_BODY_DEPTH = 0.8f;
-const float ROBOT_WHEEL_RADIUS = 0.4f;
-const float ROBOT_WHEEL_THICKNESS = 0.2f;
+const float ROBOT_CHASSIS_WIDTH = 0.8f;    // 机器人底盘宽度 (X轴)
+const float ROBOT_CHASSIS_HEIGHT = 0.4f;   // 机器人底盘高度 (Y轴)
+const float ROBOT_CHASSIS_DEPTH = 1.2f;    // 机器人底盘深度 (Z轴)
+const float ROBOT_WHEEL_RADIUS = 0.3f;     // 机器人车轮半径
+const float ROBOT_WHEEL_WIDTH = 0.15f;     // 机器人车轮宽度
+const float ROBOT_CAMERA_RADIUS = 0.25f;    // 摄像头头部半径
+const float ROBOT_CAMERA_Y_OFFSET = 0.3f;  // 摄像头距离底盘的高度
+
 const float ROBOT_MOVE_SPEED = 0.1f;
 const float ROBOT_ROTATE_SPEED = 3.0f;
 
@@ -114,6 +117,7 @@ bool g_isRobotView = false;
 
 // Robot state
 Robot g_robot;
+//float g_robotCameraAngleY = 0.0f;
 
 // Robotic arm state
 float armBaseAngle = 0.0f;
@@ -125,6 +129,7 @@ bool isWatering = false;
 // Skimmer aircraft state
 float g_skimmer1_progress = 0.0f;
 float g_skimmer2_progress = 0.0f;
+bool g_showFlightPath = false;
 std::vector<vec3> g_skimmerPath1;
 std::vector<vec3> g_skimmerPath2;
 
@@ -223,6 +228,14 @@ void setBuildingFrameMaterial() {
 void setGlowingMaterial(const GLfloat* emissionColor) {
     GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     setMaterial(black, black, black, 0.0f, emissionColor);
+}
+
+void setSkimmerBodyMaterial() {
+    GLfloat ambient[] = { 0.1f, 0.1f, 0.15f, 1.0f };
+    GLfloat diffuse[] = { 0.85f, 0.85f, 0.95f, 1.0f };
+    GLfloat specular[] = { 0.3f, 0.3f, 0.4f, 1.0f };
+    GLfloat emission[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    setMaterial(ambient, diffuse, specular, 25.0f, emission);
 }
 
 // Reset to default material
@@ -626,13 +639,14 @@ void drawGlowingRing(float z_position, float thickness) {
 
 // Draw complete skimmer aircraft
 void drawSkimmer() {
-    // Fuselage
+    // --- 1. Fuselage ---
+    setSkimmerBodyMaterial();
     glPushMatrix();
-    glColor3f(0.2f, 0.2f, 0.2f);
     glScalef(SKIMMER_WIDTH, SKIMMER_WIDTH, SKIMMER_LENGTH);
     glutSolidSphere(1.0, 16, 12);
     glPopMatrix();
 
+    // --- 2. Wings ---
     // Right wing
     glPushMatrix();
     glTranslatef(SKIMMER_WIDTH * 0.5f, 0.0f, 0.0f);
@@ -650,14 +664,15 @@ void drawSkimmer() {
     glFrontFace(GL_CCW);
     glPopMatrix();
 
-    // Glowing rings
+    // --- 3. Glowing Rings ---
     GLfloat ringEmission[] = { 0.5f, 0.8f, 1.0f, 1.0f };
     setGlowingMaterial(ringEmission);
     drawGlowingRing(SKIMMER_LENGTH * 0.3f, 0.2f);
     drawGlowingRing(SKIMMER_LENGTH * -0.3f, 0.2f);
-    resetMaterial();
-}
 
+    // --- 4. Reset material state ---
+    resetMaterial(); 
+}
 // Catmull-Rom spline interpolation
 vec3 getCatmullRomPoint(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t) {
     float t2 = t * t;
@@ -725,43 +740,121 @@ void initPaths() {
 // Check if robot position is within central disc boundary
 bool checkRobotBoundary(float x, float z) {
     float distanceFromCenter = sqrt(x * x + z * z);
-    return distanceFromCenter < CENTRAL_DISC_RADIUS - (ROBOT_BODY_WIDTH / 2.0f);
+    return distanceFromCenter < CENTRAL_DISC_RADIUS - (ROBOT_CHASSIS_WIDTH / 2.0f);
 }
 
-// Draw complete robot with hierarchical modeling
-void drawRobot() {
-    float robotLocalY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
-    
+/**
+ * @brief 绘制机器人的底盘。
+ */
+void drawRobotChassis() {
+    drawCube(ROBOT_CHASSIS_WIDTH, ROBOT_CHASSIS_HEIGHT, ROBOT_CHASSIS_DEPTH);
+}
+
+/**
+ * @brief 绘制机器人的一个车轮。
+ */
+void drawRobotWheel() {
+    glPushMatrix();
+    glRotatef(90.0f, 0.0f, 0.0f, 1.0f);
+    drawFloatingDisc(ROBOT_WHEEL_RADIUS, ROBOT_WHEEL_WIDTH);
+    glPopMatrix();
+}
+
+/**
+ * @brief 绘制机器人的摄像头头部。
+ */
+void drawRobotCameraHead() {
+    // ---  方形的摄像头主体 ---
+    float cubeSize = ROBOT_CAMERA_RADIUS * 2.0f;
+    drawCube(cubeSize, cubeSize, cubeSize);
+
+    // --- 圆形镜头 ---
     glPushMatrix();
     {
-        glTranslatef(g_robot.posX, robotLocalY, g_robot.posZ);
-        glRotatef(g_robot.angleY, 0.0f, 1.0f, 0.0f);
+        glColor3f(0.1f, 0.1f, 0.1f);
+        glTranslatef(0.0f, 0.0f, ROBOT_CAMERA_RADIUS + 0.01f);
 
-        // Robot body
-        glPushMatrix();
-        glColor3f(0.8f, 0.2f, 0.2f);
-        drawCube(ROBOT_BODY_WIDTH, ROBOT_BODY_HEIGHT, ROBOT_BODY_DEPTH);
-        glPopMatrix();
-
-        // Left wheel
-        glPushMatrix();
-        glColor3f(0.3f, 0.3f, 0.3f);
-        glTranslatef(-ROBOT_BODY_WIDTH / 2.0f - ROBOT_WHEEL_THICKNESS / 2.0f, 0.0f, 0.0f);
-        glRotatef(90.0, 0.0, 0.0, 1.0);
-        glRotatef(g_robot.wheelRotation, 0.0f, 1.0f, 0.0f);
-        drawFloatingDisc(ROBOT_WHEEL_RADIUS, ROBOT_WHEEL_THICKNESS);
-        glPopMatrix();
-
-        // Right wheel
-        glPushMatrix();
-        glColor3f(0.3f, 0.3f, 0.3f);
-        glTranslatef(ROBOT_BODY_WIDTH / 2.0f + ROBOT_WHEEL_THICKNESS / 2.0f, 0.0f, 0.0f);
-        glRotatef(90.0, 0.0, 0.0, 1.0);
-        glRotatef(g_robot.wheelRotation, 0.0f, 1.0f, 0.0f);
-        drawFloatingDisc(ROBOT_WHEEL_RADIUS, ROBOT_WHEEL_THICKNESS);
-        glPopMatrix();
+        GLUquadric* quad = gluNewQuadric();
+        gluDisk(quad, 0, ROBOT_CAMERA_RADIUS * 0.6f, 20, 1); 
+        gluDeleteQuadric(quad);
     }
     glPopMatrix();
+}
+
+/**
+ * @brief 绘制一个机器人。
+ */
+void drawRobot() {
+
+    glPushMatrix(); 
+    {
+
+        glRotatef(g_robot.angleY, 0.0f, 1.0f, 0.0f);
+        setSkimmerBodyMaterial();
+        drawRobotChassis();
+
+
+        // 前右轮
+        glPushMatrix();
+        glTranslatef(ROBOT_CHASSIS_WIDTH / 2.0f + ROBOT_WHEEL_WIDTH / 2.0f, 0.0f, ROBOT_CHASSIS_DEPTH / 2.0f - ROBOT_WHEEL_RADIUS);
+        glRotatef(g_robot.wheelRotation, 1.0f, 0.0f, 0.0f); 
+        drawRobotWheel();
+        glPopMatrix();
+        // 前左轮
+        glPushMatrix();
+        glTranslatef(-(ROBOT_CHASSIS_WIDTH / 2.0f + ROBOT_WHEEL_WIDTH / 2.0f), 0.0f, ROBOT_CHASSIS_DEPTH / 2.0f - ROBOT_WHEEL_RADIUS);
+        glRotatef(g_robot.wheelRotation, 1.0f, 0.0f, 0.0f);
+        drawRobotWheel();
+        glPopMatrix();
+        // 后右轮
+        glPushMatrix();
+        glTranslatef(ROBOT_CHASSIS_WIDTH / 2.0f + ROBOT_WHEEL_WIDTH / 2.0f, 0.0f, -(ROBOT_CHASSIS_DEPTH / 2.0f - ROBOT_WHEEL_RADIUS));
+        glRotatef(g_robot.wheelRotation, 1.0f, 0.0f, 0.0f);
+        drawRobotWheel();
+        glPopMatrix();
+        // 后左轮
+        glPushMatrix();
+        glTranslatef(-(ROBOT_CHASSIS_WIDTH / 2.0f + ROBOT_WHEEL_WIDTH / 2.0f), 0.0f, -(ROBOT_CHASSIS_DEPTH / 2.0f - ROBOT_WHEEL_RADIUS));
+        glRotatef(g_robot.wheelRotation, 1.0f, 0.0f, 0.0f);
+        drawRobotWheel();
+        glPopMatrix();
+
+        glPushMatrix();
+        glTranslatef(0.0f, ROBOT_CHASSIS_HEIGHT / 2.0f + ROBOT_CAMERA_Y_OFFSET, 0.0f);
+        glRotatef(0.0f, 0.0f, 1.0f, 0.0f);
+        drawRobotCameraHead();
+        glPopMatrix();
+
+
+        GLfloat stripeEmission[] = { 0.5f, 0.8f, 1.0f, 1.0f };
+        setGlowingMaterial(stripeEmission);
+
+        const float stripe_thickness = 0.05f;
+        const float stripe_offset = 0.01f; 
+
+        // 前后条带
+        glPushMatrix();
+        glTranslatef(0.0f, 0.0f, ROBOT_CHASSIS_DEPTH / 2.0f + stripe_offset);
+        drawCube(ROBOT_CHASSIS_WIDTH, ROBOT_CHASSIS_HEIGHT * 0.5f, stripe_thickness);
+        glPopMatrix();
+        glPushMatrix();
+        glTranslatef(0.0f, 0.0f, -(ROBOT_CHASSIS_DEPTH / 2.0f + stripe_offset));
+        drawCube(ROBOT_CHASSIS_WIDTH, ROBOT_CHASSIS_HEIGHT * 0.5f, stripe_thickness);
+        glPopMatrix();
+
+        // 左右条带
+        glPushMatrix();
+        glTranslatef(ROBOT_CHASSIS_WIDTH / 2.0f + stripe_offset, 0.0f, 0.0f);
+        drawCube(stripe_thickness, ROBOT_CHASSIS_HEIGHT * 0.5f, ROBOT_CHASSIS_DEPTH);
+        glPopMatrix();
+        glPushMatrix();
+        glTranslatef(-(ROBOT_CHASSIS_WIDTH / 2.0f + stripe_offset), 0.0f, 0.0f);
+        drawCube(stripe_thickness, ROBOT_CHASSIS_HEIGHT * 0.5f, ROBOT_CHASSIS_DEPTH);
+        glPopMatrix();
+    }
+    glPopMatrix(); 
+
+    resetMaterial();
 }
 
 // ==========================================================
@@ -838,12 +931,28 @@ void drawWaterParticles() {
 
 void setupCamera() {
     if (g_isRobotView) {
-        // First-person robot view
+        float robotGroundY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
         float angleRad = g_robot.angleY * M_PI / 180.0f;
-        float camX = g_robot.posX - sin(angleRad) * 4.0f;
-        float camY = g_robot.posY + 2.0f;
-        float camZ = g_robot.posZ - cos(angleRad) * 4.0f;
-        gluLookAt(camX, camY, camZ, g_robot.posX, g_robot.posY, g_robot.posZ, 0.0, 1.0, 0.0);
+        float localOffsetY = (ROBOT_CHASSIS_HEIGHT / 2.0f) + ROBOT_CAMERA_Y_OFFSET;
+        float localOffsetZ = ROBOT_CAMERA_RADIUS + 0.1f; 
+
+        float worldOffsetX = sin(angleRad) * localOffsetZ;
+        float worldOffsetZ = cos(angleRad) * localOffsetZ;
+
+        vec3 eye;
+        eye.x = g_robot.posX + worldOffsetX;
+        eye.y = robotGroundY + localOffsetY;
+        eye.z = g_robot.posZ + worldOffsetZ;
+
+        vec3 lookAt;
+        lookAt.x = eye.x + sin(angleRad) * 5.0f; 
+        lookAt.y = eye.y; 
+        lookAt.z = eye.z + cos(angleRad) * 5.0f;
+
+        gluLookAt(eye.x, eye.y, eye.z,         
+            lookAt.x, lookAt.y, lookAt.z, 
+            0.0, 1.0, 0.0);              
+
     }
     else {
         // Global view with rotation and zoom
@@ -916,7 +1025,14 @@ void display() {
         glPopMatrix();
 
         // Robot on central disc
-        drawRobot();
+        glPushMatrix(); 
+        {
+            float robotGroundY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
+            glTranslatef(g_robot.posX, robotGroundY, g_robot.posZ);
+            drawRobot();
+        }
+        glPopMatrix(); // <-- 结束机器人的变换
+
 
         // Garden scene on disc surface
         glPushMatrix();
@@ -964,8 +1080,10 @@ void display() {
     drawWaterParticles();
 
     // Flight paths
-    drawFlightPath(g_skimmerPath1, vec3_create(0.5f, 0.6f, 0.9f));
-    drawFlightPath(g_skimmerPath2, vec3_create(0.95f, 0.4f, 0.1f));
+    if (g_showFlightPath) {
+        drawFlightPath(g_skimmerPath1, vec3_create(0.5f, 0.6f, 0.9f));
+        drawFlightPath(g_skimmerPath2, vec3_create(0.95f, 0.4f, 0.1f));
+    }
 
     // Animated skimmers
     drawAnimatedSkimmer(g_skimmer1_progress, g_skimmerPath1);
@@ -1055,6 +1173,9 @@ void keyboard(unsigned char key, int x, int y) {
     else if (key == 'p' || key == 'P') {
         isWatering = true;
     }
+    else if (key == 't' || key == 'T') {
+        g_showFlightPath = !g_showFlightPath;
+    }
     // Arm control
     else if (key == '1') {
         armLowerAngle += 5.0f;
@@ -1074,6 +1195,7 @@ void keyboard(unsigned char key, int x, int y) {
     else if (key == '6') {
         armBaseAngle -= 5.0f;
     }
+
 
     // Validate arm position
     GLdouble nozzlePos[3];
