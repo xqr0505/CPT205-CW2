@@ -82,6 +82,14 @@ const float GRAVITY = 9.8f;
 const float BUILDING_HEIGHT = 6.5f;
 const float BUILDING_BASE = 3.5f;
 
+// Fractal Tree constants
+const int FRACTAL_TREE_ITERATIONS = 3;        // L-System 迭代次数 (建议 3-5)
+const float TREE_INITIAL_HEIGHT = 1.5f;       // 初始树干高度
+const float TREE_INITIAL_RADIUS = 0.1f;       // 初始树干半径
+const float TREE_HEIGHT_DECAY = 0.7f;         // 每次迭代，高度衰减系数
+const float TREE_RADIUS_DECAY = 0.65f;        // 每次迭代，半径衰减系数
+const float TREE_LEAF_SIZE = 0.4f;            // 叶片大小
+const float TREE_BRANCH_ANGLE = 25.0f;        // 树枝分叉角度
 // ==========================================================
 // DATA STRUCTURES
 // ==========================================================
@@ -140,6 +148,9 @@ std::vector<vec3> g_skimmerPath2;
 
 // Particle system
 Particle waterParticles[MAX_PARTICLES];
+
+// Fractal Tree state
+std::string g_fractalTreeGrammar; // 存储生成的L-System指令字符串
 
 // ==========================================================
 // FUNCTION DECLARATIONS
@@ -359,12 +370,29 @@ void setSkimmerBodyMaterial() {
     setMaterial(ambient, diffuse, specular, 3.0f, emission);
 }
 
+void setTreeTrunkMaterial() {
+    GLfloat ambient[] = { 0.4f, 0.25f, 0.15f, 1.0f };
+    GLfloat diffuse[] = { 0.5f, 0.35f, 0.2f, 1.0f };
+    GLfloat specular[] = { 0.1f, 0.05f, 0.0f, 1.0f };
+    GLfloat emission[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    setMaterial(ambient, diffuse, specular, 5.0f, emission);
+}
+
+void setTreeLeafMaterial() {
+    GLfloat ambient[] = { 0.1f, 0.3f, 0.1f, 1.0f };
+    GLfloat diffuse[] = { 0.2f, 0.6f, 0.2f, 1.0f };
+    GLfloat specular[] = { 0.15f, 0.25f, 0.15f, 1.0f };
+    GLfloat emission[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    setMaterial(ambient, diffuse, specular, 20.0f, emission);
+}
+
 // Reset to default material
 void resetMaterial() {
     glEnable(GL_COLOR_MATERIAL);
     GLfloat emission[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     glMaterialfv(GL_FRONT, GL_EMISSION, emission);
 }
+
 
 // ==========================================================
 // PRIMITIVE DRAWING FUNCTIONS
@@ -378,11 +406,11 @@ void drawFloatingDisc(float radius, float height) {
     glTranslatef(0.0f, -height / 2.0f, 0.0f);
     glRotatef(90.0f, -1.0f, 0.0f, 0.0f);
 
-    gluDisk(quadric, 0, radius, 80, 20);
+    gluDisk(quadric, 0, radius, 80, 30);
     gluCylinder(quadric, radius, radius, height, 80, 10);
 
     glTranslatef(0.0f, 0.0f, height);
-    gluDisk(quadric, 0, radius, 80, 20);
+    gluDisk(quadric, 0, radius, 80, 30);
 
     glPopMatrix();
     gluDeleteQuadric(quadric);
@@ -404,7 +432,118 @@ void drawSphere(float radius) {
 // ==========================================================
 // GARDEN SCENE FUNCTIONS
 // ==========================================================
+/**
+ * @brief 生成 L-System 分形树的指令字符串。
+ * F: 向前画树干和叶子
+ * [: 保存当前状态 (位置和朝向)
+ * ]: 恢复上一个状态
+ * +: 绕X轴正向旋转 (向上抬头)
+ * -: 绕X轴负向旋转 (向下低头)
+ * &: 绕Y轴正向旋转 (向左偏航)
+ * ^: 绕Y轴负向旋转 (向右偏航)
+ * /: 绕Z轴正向旋转 (向左翻滚)
+ * \: 绕Z轴负向旋转 (向右翻滚)
+ */
+void generateFractalTreeGrammar() {
+    std::string axiom = "F"; // 初始公理：一根树干
+    // 重写规则：将每个 'F' 替换为更复杂的结构
+    std::string rule = "F[+F&F][-F^F][/F\F]";
 
+    std::string currentString = axiom;
+
+    for (int i = 0; i < FRACTAL_TREE_ITERATIONS; ++i) {
+        std::string nextString = "";
+        for (char c : currentString) {
+            if (c == 'F') {
+                nextString += rule; // 应用规则
+            }
+            else {
+                nextString += c; // 保留其他字符 ([, ], +, -, etc.)
+            }
+        }
+        currentString = nextString;
+    }
+    g_fractalTreeGrammar = currentString;
+    // Optional: Print the grammar to see the complexity
+    // std::cout << "Generated Grammar (" << FRACTAL_TREE_ITERATIONS << " iterations):\n" << g_fractalTreeGrammar << std::endl;
+}
+
+void drawTreeLeaf(float size) {
+    glBegin(GL_QUADS);
+    glNormal3f(0.0f, 0.0f, 1.0f); // 所有顶点法线都朝前
+    glVertex3f(0, 0, 0);
+    glVertex3f(size / 2.0f, size, 0);
+    glVertex3f(0, size * 2.0f, 0);
+    glVertex3f(-size / 2.0f, size, 0);
+    glEnd();
+}
+
+// 绘制一段树干 (一个圆柱体)
+void drawTreeBranch(float radius, float height) {
+    glPushMatrix();
+    // 圆柱体默认沿Z轴，我们先把它旋转到沿Y轴向上
+    glRotatef(-90, 1.0f, 0.0f, 0.0f);
+    GLUquadric* quad = gluNewQuadric();
+    gluCylinder(quad, radius, radius * 0.8f, height, 8, 1); // 树枝逐渐变细
+    gluDeleteQuadric(quad);
+    glPopMatrix();
+}
+/**
+ * @brief 根据生成的 L-System 字符串递归绘制分形树。
+ */
+void drawFractalTree() {
+    if (g_fractalTreeGrammar.empty()) return;
+    srand(0);
+    // 初始化绘制参数
+    float currentHeight = TREE_INITIAL_HEIGHT;
+    float currentRadius = TREE_INITIAL_RADIUS;
+
+    // 遍历指令字符串
+    for (char c : g_fractalTreeGrammar) {
+        switch (c) {
+        case 'F': // 向前画树干，并在末端画一片叶子
+            setTreeTrunkMaterial();
+            drawTreeBranch(currentRadius, currentHeight);
+            // 将坐标系移动到树枝顶端
+            glTranslatef(0.0f, currentHeight, 0.0f);
+
+            // 在新树枝的末端画一片叶子
+            setTreeLeafMaterial();
+            // 随机旋转一下叶子，让它看起来更自然
+            glPushMatrix();
+            glRotatef(rand() % 360, 0.0f, 1.0f, 0.0f);
+            glRotatef((rand() % 40) - 20, 1.0f, 0.0f, 0.0f);
+            drawTreeLeaf(TREE_LEAF_SIZE);
+            glPopMatrix();
+            break;
+
+        case '[': // 保存当前状态
+            glPushMatrix();
+            // 每次分叉，后续的树枝会变短变细
+            currentHeight *= TREE_HEIGHT_DECAY;
+            currentRadius *= TREE_RADIUS_DECAY;
+            break;
+
+        case ']': // 恢复上一个状态
+            glPopMatrix();
+            // 恢复之前的尺寸
+            currentHeight /= TREE_HEIGHT_DECAY;
+            currentRadius /= TREE_RADIUS_DECAY;
+            break;
+
+            // --- 旋转指令 ---
+        case '+': glRotatef(TREE_BRANCH_ANGLE, 1.0f, 0.0f, 0.0f); break;
+        case '-': glRotatef(-TREE_BRANCH_ANGLE, 1.0f, 0.0f, 0.0f); break;
+        case '&': glRotatef(TREE_BRANCH_ANGLE, 0.0f, 1.0f, 0.0f); break;
+        case '^': glRotatef(-TREE_BRANCH_ANGLE, 0.0f, 1.0f, 0.0f); break;
+        case '/': glRotatef(TREE_BRANCH_ANGLE, 0.0f, 0.0f, 1.0f); break;
+        case '\\': glRotatef(-TREE_BRANCH_ANGLE, 0.0f, 0.0f, 1.0f); break;
+        default:
+            break;
+        }
+    }
+    resetMaterial(); // 确保在绘制结束后重置材质
+}
 // Draw an icosahedron-based bush
 void drawBush() {
     const float t = (1.0f + sqrt(5.0f)) / 2.0f;
@@ -526,6 +665,12 @@ void drawGardenScene() {
     }
 
     glDisable(GL_CLIP_PLANE0);
+    glPushMatrix();
+    glTranslatef(2.5f, 0.0f, -4.0f); 
+    glRotatef(-90.0f, 0.0f, 1.0f, 0.0f);
+
+    drawFractalTree();
+    glPopMatrix();
 }
 
 // Draw flower garden
@@ -1427,10 +1572,11 @@ int main(int argc, char** argv) {
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowSize(g_windowWidth, g_windowHeight);
     glutInitWindowPosition(100, 100);
-    glutCreateWindow("Floating Islands Scene with Robot");
+    glutCreateWindow("Future City");
 
     initGL();
     initPaths();
+    generateFractalTreeGrammar();
     
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
