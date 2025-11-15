@@ -3,6 +3,7 @@
 #include <cmath> 
 #include <iostream> 
 #include <vector>
+#include <random> 
 #define M_PI 3.1415926535
 
 // ==========================================================
@@ -234,10 +235,10 @@ void calculateRobotLightWorldPosition(GLdouble outPos[3]) {
     float robotGroundY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
     glTranslatef(g_robot.posX, robotGroundY, g_robot.posZ);
     glRotatef(g_robot.angleY, 0.0f, 1.0f, 0.0f);
-    
+
     // Navigate to camera head position
     glTranslatef(0.0f, ROBOT_CHASSIS_HEIGHT / 2.0f + ROBOT_CAMERA_Y_OFFSET, 0.0f);
-    
+
     // Move slightly forward from camera center
     glTranslatef(0.0f, 0.0f, ROBOT_CAMERA_RADIUS);
 
@@ -256,7 +257,7 @@ void calculateRobotLightWorldPosition(GLdouble outPos[3]) {
  */
 void calculateRobotLightWorldDirection(GLdouble outDir[3]) {
     float angleRad = g_robot.angleY * M_PI / 180.0f;
-    
+
     // Direction vector in world space (robot's forward direction)
     outDir[0] = sin(angleRad);
     outDir[1] = 0.0f;  // Horizontal spotlight
@@ -313,12 +314,12 @@ void setupLights() {
         glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, 0.01f);
 
         // Calculate light color based on brightness
-        GLfloat light1_diffuse[] = { 1.0f, 0.9f, 0.7f, 1.0f };  
+        GLfloat light1_diffuse[] = { 1.0f, 0.9f, 0.7f, 1.0f };
         light1_diffuse[0] *= g_robotLightBrightness;
         light1_diffuse[1] *= g_robotLightBrightness;
         light1_diffuse[2] *= g_robotLightBrightness;
 
-        GLfloat light1_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };  
+        GLfloat light1_ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
         GLfloat light1_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
         light1_specular[0] *= g_robotLightBrightness;
         light1_specular[1] *= g_robotLightBrightness;
@@ -577,37 +578,39 @@ void drawBush() {
     glEnd();
 }
 
-// Draw a curved flower petal
-void drawFlowerPetal(vec3 v_center, vec3 v_edge1, vec3 v_edge2) {
-    const int ARC_SEGMENTS = 12;
-    const float ARC_HEIGHT = 0.5f;
 
-    // Base triangle
+
+void drawFlowerPetal(vec3 v_center, vec3 v_edge1, vec3 v_edge2) {
+    const float PETAL_HEIGHT = 0.25f;
+
     glBegin(GL_TRIANGLES);
     glNormal3f(v_center.x, v_center.y, v_center.z); glVertex3f(v_center.x, v_center.y, v_center.z);
     glNormal3f(v_edge1.x, v_edge1.y, v_edge1.z); glVertex3f(v_edge1.x, v_edge1.y, v_edge1.z);
     glNormal3f(v_edge2.x, v_edge2.y, v_edge2.z); glVertex3f(v_edge2.x, v_edge2.y, v_edge2.z);
     glEnd();
 
-    // Curved surface
     vec3 mid_point = vec3_scale(vec3_add(v_edge1, v_edge2), 0.5f);
-    vec3 arc_direction = vec3_normalize(vec3_sub(mid_point, v_center));
+    vec3 outward_direction = vec3_normalize(mid_point);
+    vec3 translation = vec3_scale(outward_direction, PETAL_HEIGHT);
+    vec3 v_outer1 = vec3_add(v_edge1, translation);
+    vec3 v_outer2 = vec3_add(v_edge2, translation);
 
-    glBegin(GL_TRIANGLE_STRIP);
-    for (int i = 0; i <= ARC_SEGMENTS; ++i) {
-        float step = (float)i / ARC_SEGMENTS;
-        vec3 edge_point = vec3_lerp(v_edge1, v_edge2, step);
-        float arc_offset = sin(step * M_PI) * ARC_HEIGHT;
-        vec3 arc_point = vec3_add(edge_point, vec3_scale(arc_direction, arc_offset));
 
-        vec3 normal1 = vec3_normalize(edge_point);
-        glNormal3f(normal1.x, normal1.y, normal1.z);
-        glVertex3f(edge_point.x, edge_point.y, edge_point.z);
+    glBegin(GL_QUADS);
+    glNormal3f(v_edge1.x, v_edge1.y, v_edge1.z);
+    glVertex3fv(&v_edge1.x); 
 
-        vec3 normal2 = vec3_normalize(arc_point);
-        glNormal3f(normal2.x, normal2.y, normal2.z);
-        glVertex3f(arc_point.x, arc_point.y, arc_point.z);
-    }
+    glNormal3f(v_edge2.x, v_edge2.y, v_edge2.z);
+    glVertex3fv(&v_edge2.x); 
+
+    vec3 normal_outer2 = vec3_normalize(v_outer2);
+    glNormal3fv(&normal_outer2.x);
+    glVertex3fv(&v_outer2.x);
+
+    vec3 normal_outer1 = vec3_normalize(v_outer1);
+    glNormal3fv(&normal_outer1.x);
+    glVertex3fv(&v_outer1.x); 
+
     glEnd();
 }
 
@@ -638,7 +641,7 @@ void drawFlower(vec3 petalColor) {
 // Draw the garden scene with bushes
 void drawGardenScene() {
     glColor3f(0.2f, 0.6f, 0.2f);
-    
+
     // Enable clipping plane to cut bushes at ground level
     GLdouble planeEquation[4] = { 0.0, 1.0, 0.0, 0.0 };
     glClipPlane(GL_CLIP_PLANE0, planeEquation);
@@ -666,7 +669,7 @@ void drawGardenScene() {
 
     glDisable(GL_CLIP_PLANE0);
     glPushMatrix();
-    glTranslatef(2.5f, 0.0f, -4.0f); 
+    glTranslatef(2.5f, 0.0f, -4.0f);
     glRotatef(-90.0f, 0.0f, 1.0f, 0.0f);
 
     drawFractalTree();
@@ -675,8 +678,8 @@ void drawGardenScene() {
 
 // Draw flower garden
 void drawFlowerGarden() {
-    vec3 flowerColor = {1.0f, 0.6f, 0.8f};
-    
+    vec3 flowerColor = { 1.0f, 0.6f, 0.8f };
+
     vec3 flowerPositions[] = {
         {-0.6f, 0.5f, 2.0f},
         {-1.6f, 0.6f, 1.4f}
@@ -923,7 +926,7 @@ void drawSkimmer() {
     drawWing();
     glPopMatrix();
 
-    // Left wing (mirrored)
+    // Left wing
     glPushMatrix();
     glTranslatef(-SKIMMER_WIDTH * 0.5f, 0.0f, 0.0f);
     glRotatef(5.0f, 0.0f, 0.0f, 1.0f);
@@ -940,7 +943,7 @@ void drawSkimmer() {
     drawGlowingRing(SKIMMER_LENGTH * -0.3f, 0.2f);
 
     // --- 4. Reset material state ---
-    resetMaterial(); 
+    resetMaterial();
 }
 // Catmull-Rom spline interpolation
 vec3 getCatmullRomPoint(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t) {
@@ -984,7 +987,7 @@ vec3 getPointOnPath(float progress, const std::vector<vec3>& path) {
 // Initialize flight paths
 void initPaths() {
     float r = SURROUND_DISC_DISTANCE;
-    
+
     // Path 1
     g_skimmerPath1.push_back(vec3_create(r + 8.0f, 3.0f, 0.0f));
     g_skimmerPath1.push_back(vec3_create(0.0f, 6.0f, r + 6.0f));
@@ -1062,11 +1065,11 @@ void drawRobotCameraHead() {
         }
 
         GLUquadric* quad = gluNewQuadric();
-        gluDisk(quad, 0, ROBOT_CAMERA_RADIUS * 0.6f, 20, 1); 
+        gluDisk(quad, 0, ROBOT_CAMERA_RADIUS * 0.6f, 20, 1);
         gluDeleteQuadric(quad);
     }
     glPopMatrix();
-    
+
     resetMaterial();
 }
 
@@ -1075,7 +1078,7 @@ void drawRobotCameraHead() {
  */
 void drawRobot() {
 
-    glPushMatrix(); 
+    glPushMatrix();
     {
 
         glRotatef(g_robot.angleY, 0.0f, 1.0f, 0.0f);
@@ -1086,7 +1089,7 @@ void drawRobot() {
         // 前右轮
         glPushMatrix();
         glTranslatef(ROBOT_CHASSIS_WIDTH / 2.0f + ROBOT_WHEEL_WIDTH / 2.0f, 0.0f, ROBOT_CHASSIS_DEPTH / 2.0f - ROBOT_WHEEL_RADIUS);
-        glRotatef(g_robot.wheelRotation, 1.0f, 0.0f, 0.0f); 
+        glRotatef(g_robot.wheelRotation, 1.0f, 0.0f, 0.0f);
         drawRobotWheel();
         glPopMatrix();
         // 前左轮
@@ -1119,7 +1122,7 @@ void drawRobot() {
         setGlowingMaterial(stripeEmission);
 
         const float stripe_thickness = 0.05f;
-        const float stripe_offset = 0.01f; 
+        const float stripe_offset = 0.01f;
 
         // 前后条带
         glPushMatrix();
@@ -1141,7 +1144,7 @@ void drawRobot() {
         drawCube(stripe_thickness, ROBOT_CHASSIS_HEIGHT * 0.5f, ROBOT_CHASSIS_DEPTH);
         glPopMatrix();
     }
-    glPopMatrix(); 
+    glPopMatrix();
 
     resetMaterial();
 }
@@ -1157,6 +1160,9 @@ void initParticles() {
 }
 
 void updateParticles(float dt) {
+    static std::default_random_engine generator(static_cast<unsigned int>(time(nullptr)));
+    static std::uniform_real_distribution<float> distribution(-0.1f, 0.1f);
+
     // Emit new particles when watering
     if (isWatering) {
         GLdouble nozzlePos[3];
@@ -1169,9 +1175,11 @@ void updateParticles(float dt) {
                 waterParticles[i].x = static_cast<float>(nozzlePos[0]);
                 waterParticles[i].y = static_cast<float>(nozzlePos[1]);
                 waterParticles[i].z = static_cast<float>(nozzlePos[2]);
-                waterParticles[i].vx = (rand() % 100 / 100.0f - 0.5f) * 0.5f;
-                waterParticles[i].vy = -2.0f - (rand() % 100 / 100.0f);
-                waterParticles[i].vz = (rand() % 100 / 100.0f - 0.5f) * 0.5f;
+
+                waterParticles[i].vx = distribution(generator);
+                waterParticles[i].vy = 1.0f;
+                waterParticles[i].vz = distribution(generator);
+
                 break;
             }
         }
@@ -1223,7 +1231,7 @@ void setupCamera() {
         float robotGroundY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
         float angleRad = g_robot.angleY * M_PI / 180.0f;
         float localOffsetY = (ROBOT_CHASSIS_HEIGHT / 2.0f) + ROBOT_CAMERA_Y_OFFSET;
-        float localOffsetZ = ROBOT_CAMERA_RADIUS + 0.1f; 
+        float localOffsetZ = ROBOT_CAMERA_RADIUS + 0.1f;
 
         float worldOffsetX = sin(angleRad) * localOffsetZ;
         float worldOffsetZ = cos(angleRad) * localOffsetZ;
@@ -1234,13 +1242,13 @@ void setupCamera() {
         eye.z = g_robot.posZ + worldOffsetZ;
 
         vec3 lookAt;
-        lookAt.x = eye.x + sin(angleRad) * 5.0f; 
-        lookAt.y = eye.y; 
+        lookAt.x = eye.x + sin(angleRad) * 5.0f;
+        lookAt.y = eye.y;
         lookAt.z = eye.z + cos(angleRad) * 5.0f;
 
-        gluLookAt(eye.x, eye.y, eye.z,         
-            lookAt.x, lookAt.y, lookAt.z, 
-            0.0, 1.0, 0.0);              
+        gluLookAt(eye.x, eye.y, eye.z,
+            lookAt.x, lookAt.y, lookAt.z,
+            0.0, 1.0, 0.0);
 
     }
     else {
@@ -1262,14 +1270,14 @@ void drawFlightPath(const std::vector<vec3>& path, vec3 color) {
     glDisable(GL_LIGHTING);
     glLineWidth(2.0f);
     glColor3f(color.x, color.y, color.z);
-    
+
     glBegin(GL_LINE_STRIP);
     for (float t = 0.0f; t < path.size(); t += 0.1f) {
         vec3 point = getPointOnPath(t, path);
         glVertex3f(point.x, point.y, point.z);
     }
     glEnd();
-    
+
     glEnable(GL_LIGHTING);
     glLineWidth(1.0f);
 }
@@ -1315,7 +1323,7 @@ void display() {
         glPopMatrix();
 
         // Robot on central disc
-        glPushMatrix(); 
+        glPushMatrix();
         {
             float robotGroundY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
             glTranslatef(g_robot.posX, robotGroundY, g_robot.posZ);
@@ -1420,11 +1428,11 @@ void motion(int x, int y) {
         int dy = y - g_mouseY;
         g_cameraAngleY += dx * 0.5f;
         g_cameraAngleX += dy * 0.5f;
-        
+
         // Clamp vertical rotation
         if (g_cameraAngleX > 90.0f) g_cameraAngleX = 90.0f;
         if (g_cameraAngleX < -90.0f) g_cameraAngleX = -90.0f;
-        
+
         g_mouseX = x;
         g_mouseY = y;
         glutPostRedisplay();
@@ -1577,7 +1585,7 @@ int main(int argc, char** argv) {
     initGL();
     initPaths();
     generateFractalTreeGrammar();
-    
+
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
