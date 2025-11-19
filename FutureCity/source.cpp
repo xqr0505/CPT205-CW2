@@ -89,6 +89,12 @@ const float TREE_HEIGHT_DECAY = 0.7f;         // 每次迭代，高度衰减系数
 const float TREE_RADIUS_DECAY = 0.65f;        // 每次迭代，半径衰减系数
 const float TREE_LEAF_SIZE = 0.4f;            // 叶片大小
 const float TREE_BRANCH_ANGLE = 25.0f;        // 树枝分叉角度
+
+// Stone path constants
+const float STONE_WIDTH = 1.3f;      // 石头宽度
+const float STONE_DEPTH = 0.6f;      // 石头深度
+const float STONE_HEIGHT = 0.05f;    // 石头厚度
+const float GAP = 0.2f;              // 石头之间的空隙距离
 // ==========================================================
 // DATA STRUCTURES
 // ==========================================================
@@ -195,10 +201,8 @@ void drawSphere(float radius);
 
 // Garden scene
 void drawBush();
-void drawFlowerPetal(vec3 v_center, vec3 v_edge1, vec3 v_edge2);
-void drawFlower(vec3 petalColor);
 void drawGardenScene();
-void drawFlowerGarden();
+
 
 // Robotic arm
 void drawArmBase();
@@ -754,63 +758,6 @@ void drawBush() {
 }
 
 
-void drawFlowerPetal(vec3 v_center, vec3 v_edge1, vec3 v_edge2) {
-    const float PETAL_HEIGHT = 0.25f;
-
-    glBegin(GL_TRIANGLES);
-    glNormal3f(v_center.x, v_center.y, v_center.z); glVertex3f(v_center.x, v_center.y, v_center.z);
-    glNormal3f(v_edge1.x, v_edge1.y, v_edge1.z); glVertex3f(v_edge1.x, v_edge1.y, v_edge1.z);
-    glNormal3f(v_edge2.x, v_edge2.y, v_edge2.z); glVertex3f(v_edge2.x, v_edge2.y, v_edge2.z);
-    glEnd();
-
-    vec3 mid_point = vec3_scale(vec3_add(v_edge1, v_edge2), 0.5f);
-    vec3 outward_direction = vec3_normalize(mid_point);
-    vec3 translation = vec3_scale(outward_direction, PETAL_HEIGHT);
-    vec3 v_outer1 = vec3_add(v_edge1, translation);
-    vec3 v_outer2 = vec3_add(v_edge2, translation);
-
-
-    glBegin(GL_QUADS);
-    glNormal3f(v_edge1.x, v_edge1.y, v_edge1.z);
-    glVertex3fv(&v_edge1.x); 
-
-    glNormal3f(v_edge2.x, v_edge2.y, v_edge2.z);
-    glVertex3fv(&v_edge2.x); 
-
-    vec3 normal_outer2 = vec3_normalize(v_outer2);
-    glNormal3fv(&normal_outer2.x);
-    glVertex3fv(&v_outer2.x);
-
-    vec3 normal_outer1 = vec3_normalize(v_outer1);
-    glNormal3fv(&normal_outer1.x);
-    glVertex3fv(&v_outer1.x); 
-
-    glEnd();
-}
-
-// Draw a flower with multiple petals
-void drawFlower(vec3 petalColor) {
-    const float t = (1.0f + sqrt(5.0f)) / 2.0f;
-    const float r = 1.0f / sqrt(1.0f * 1.0f + t * t);
-    const float v1 = 1.0f * r, v2 = t * r;
-
-    static const GLfloat vertices[12][3] = {
-        {-v1, v2, 0}, {v1, v2, 0}, {-v1, -v2, 0}, {v1, -v2, 0},
-        {0, -v1, v2}, {0, v1, v2}, {0, -v1, -v2}, {0, v1, -v2},
-        {v2, 0, -v1}, {v2, 0, v1}, {-v2, 0, -v1}, {-v2, 0, v1}
-    };
-    static const GLint faces[20][3] = {
-        {0, 11, 5}, {0, 5, 1}, {0, 1, 7}, {0, 7, 10}, {0, 10, 11}
-    };
-
-    glColor3f(petalColor.x, petalColor.y, petalColor.z);
-    for (int i = 0; i < 5; i++) {
-        vec3 vC = vec3_create(vertices[faces[i][0]][0], vertices[faces[i][0]][1], vertices[faces[i][0]][2]);
-        vec3 vA = vec3_create(vertices[faces[i][1]][0], vertices[faces[i][1]][1], vertices[faces[i][1]][2]);
-        vec3 vB = vec3_create(vertices[faces[i][2]][0], vertices[faces[i][2]][1], vertices[faces[i][2]][2]);
-        drawFlowerPetal(vC, vA, vB);
-    }
-}
 
 // Draw the garden scene with bushes
 void drawGardenScene() {
@@ -823,11 +770,11 @@ void drawGardenScene() {
 
     // Draw multiple bushes at different positions
     vec3 bushPositions[] = {
-        {-2.0f, 0.0f, 3.0f},
-        {-4.0f, 0.0f, 2.0f},
-        {-2.8f, 0.0f, 1.3f},
-        {-4.5f, 0.0f, 0.5f},
-        {-3.8f, 0.0f, -1.6f}
+        {-3.0f, 0.0f, 3.0f},
+        {-5.0f, 0.0f, 2.0f},
+        {-3.8f, 0.0f, 1.3f},
+        {-5.5f, 0.0f, 0.5f},
+        {-4.8f, 0.0f, -1.6f}
     };
     vec3 bushScales[] = {
         {1.5f, 1.5f, 1.5f},
@@ -854,37 +801,77 @@ void drawGardenScene() {
     glPopMatrix();
 }
 
-// Draw flower garden
-void drawFlowerGarden() {
-    vec3 flowerColor = { 1.0f, 0.6f, 0.8f };
 
-    vec3 flowerPositions[] = {
-        {-1.5f, 0.5f, 4.5f},
-        {-0.7f, 0.5f, 4.0f},
-        {-0.6f, 0.5f, 3.2f},
-    };
-    vec3 flowerScales[] = {
-        {0.35f, 0.35f, 0.35f},
-        {0.4f, 0.4f, 0.4f},
-        {0.3f, 0.3f, 0.3f},
-    };
-    vec3 flowerRotations[] = {
-        {130.0f, 70.0f, 80.0f},
-        {80.0f, 20.0f, 90.0f},
-        {30.0f, 30.0f, 80.0f},
-    };
 
-    for (int i = 0; i < 0; i++) {
+void drawStonePath(float centerX, float centerZ, float radius, float startAngleDeg, float endAngleDeg, float stoneRotationDeg) {
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, g_texGroundSurround); 
+
+    if (g_texGroundSurround != 0) glColor3f(1.0f, 1.0f, 1.0f);
+    else {
+        glDisable(GL_TEXTURE_2D);
+        glColor3f(0.5f, 0.5f, 0.55f);
+    }
+
+    float startRad = startAngleDeg * M_PI / 180.0f;
+    float endRad = endAngleDeg * M_PI / 180.0f;
+    float totalAngleRad = fabs(endRad - startRad);
+    float arcLength = totalAngleRad * radius;
+    float stepUnit = STONE_WIDTH + GAP; 
+    int numStones = (int)(arcLength / stepUnit);
+
+    if (numStones <= 0) numStones = 1;
+
+    for (int i = 0; i <= numStones; ++i) {
+        float t = (float)i / numStones;
+        float currentAngle = startRad + t * (endRad - startRad);
+        float x = centerX + radius * sin(currentAngle);
+        float z = centerZ + radius * cos(currentAngle);
+        float distSq = x * x + z * z;
+        float limitRadius = CENTRAL_DISC_RADIUS - 0.5f;
+        float limitSq = limitRadius * limitRadius;
+
+        if (distSq > limitSq) {
+            continue; 
+        }
+
         glPushMatrix();
-        glTranslatef(flowerPositions[i].x, flowerPositions[i].y, flowerPositions[i].z);
-        glRotatef(flowerRotations[i].x, 1.0f, 0.0f, 0.0f); 
-        glRotatef(flowerRotations[i].y, 0.0f, 1.0f, 0.0f);
-        glRotatef(flowerRotations[i].z, 0.0f, 0.0f, 1.0f); 
-        glScalef(flowerScales[i].x, flowerScales[i].y, flowerScales[i].z);
-        drawFlower(flowerColor);
+        {
+            glTranslatef(x, 0.02f, z); 
+            glRotatef(stoneRotationDeg, 0.0f, 1.0f, 0.0f);
+
+            float w = STONE_WIDTH / 2.0f;
+            float h = STONE_HEIGHT;
+            float d = STONE_DEPTH / 2.0f;
+
+            glBegin(GL_QUADS);
+            glNormal3f(0.0f, 1.0f, 0.0f);
+            glTexCoord2f(0.0f, 0.0f); glVertex3f(-w, h, -d);
+            glTexCoord2f(0.0f, 1.0f); glVertex3f(-w, h, d);
+            glTexCoord2f(1.0f, 1.0f); glVertex3f(w, h, d);
+            glTexCoord2f(1.0f, 0.0f); glVertex3f(w, h, -d);
+            glEnd();
+
+            glDisable(GL_TEXTURE_2D);
+            glColor3f(0.4f, 0.4f, 0.45f);
+            glBegin(GL_QUAD_STRIP);
+            glNormal3f(0, 0, -1); glVertex3f(w, 0, -d); glVertex3f(w, h, -d);
+            glVertex3f(-w, 0, -d); glVertex3f(-w, h, -d);
+            glNormal3f(-1, 0, 0); glVertex3f(-w, 0, d); glVertex3f(-w, h, d);
+            glNormal3f(0, 0, 1);  glVertex3f(w, 0, d); glVertex3f(w, h, d);
+            glNormal3f(1, 0, 0);  glVertex3f(w, 0, -d); glVertex3f(w, h, -d);
+            glEnd();
+
+            if (g_texGroundSurround != 0) {
+                glEnable(GL_TEXTURE_2D);
+                glColor3f(1.0f, 1.0f, 1.0f);
+            }
+        }
         glPopMatrix();
     }
 
+    glDisable(GL_TEXTURE_2D);
 }
 // ==========================================================
 // ROBOTIC ARM FUNCTIONS
@@ -1524,7 +1511,7 @@ void display() {
         {
             glTranslatef(0.0f, CENTRAL_DISC_HEIGHT / 2.0f, 0.0f);
             drawGardenScene();
-            drawFlowerGarden();
+            drawStonePath(6.0f, - 3.0f, 8.0f, 0.0f, 360.0f, 30.0f);
         }
         glPopMatrix();
 
