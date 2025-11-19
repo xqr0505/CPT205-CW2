@@ -22,8 +22,6 @@ vec3 vec3_normalize(vec3 v) {
     if (len > 0) return vec3_scale(v, 1.0f / len);
     return { 0, 0, 0 };
 }
-
-// Additional vector operations for better code reuse
 vec3 vec3_lerp(vec3 a, vec3 b, float t) {
     return vec3_add(vec3_scale(a, 1.0f - t), vec3_scale(b, t));
 }
@@ -153,10 +151,24 @@ Particle waterParticles[MAX_PARTICLES];
 // Fractal Tree state
 std::string g_fractalTreeGrammar; // 存储生成的L-System指令字符串
 
+// Texture IDs
+GLuint g_texTreeBark = 0;
+GLuint g_texTreeLeaf = 0;
+GLuint g_texGroundCenter = 0;
+GLuint g_texGroundSurround = 0;
+GLuint g_texBush = 0;
+
+// Sky Dome State
+GLuint g_texSkyDay = 0;
+GLuint g_texSkyNight = 0;
+int g_currentSkyIndex = 0; // 0 = Day, 1 = Night
+
+
+
 // ==========================================================
 // FUNCTION DECLARATIONS
 // ==========================================================
-
+void initTextures();
 // Initialization
 void initGL();
 void initPaths();
@@ -217,6 +229,67 @@ void drawWaterParticles();
 
 // Camera
 void setupCamera();
+// ==========================================================
+// TEXTURE LOADING FUNCTIONS
+// ==========================================================
+
+GLuint loadTexture(const char* filename) {
+    GLuint textureID = 0;
+    FILE* file;
+
+
+    if (fopen_s(&file, filename, "rb") != 0 || file == NULL) {
+        std::cerr << "[Texture Error] Failed to open file: " << filename << std::endl;
+        return 0;
+    }
+    unsigned char header[54];
+    if (fread(header, 1, 54, file) != 54) {
+        std::cerr << "[Texture Error] Invalid BMP file: " << filename << std::endl;
+        fclose(file);
+        return 0;
+    }
+    if (header[0] != 'B' || header[1] != 'M') {
+        std::cerr << "[Texture Error] Not a BMP file: " << filename << std::endl;
+        fclose(file);
+        return 0;
+    }
+    int width = *(int*)&(header[0x12]);
+    int height = *(int*)&(header[0x16]);
+    unsigned int dataPos = *(unsigned int*)&(header[0x0A]);
+    int imageSize = width * height * 3; 
+    if (dataPos == 0) dataPos = 54;
+
+    int rowSizePadded = (width * 3 + 3) & (~3);
+    int padding = rowSizePadded - (width * 3); 
+    unsigned char* data = new unsigned char[imageSize];
+
+    fseek(file, dataPos, SEEK_SET);
+
+    for (int i = 0; i < height; i++) {
+        fread(data + (i * width * 3), 1, width * 3, file);
+        if (padding > 0) {
+            fseek(file, padding, SEEK_CUR);
+        }
+    }
+
+    fclose(file);
+
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+
+    gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_BGR_EXT, GL_UNSIGNED_BYTE, data);
+
+    delete[] data;
+
+    std::cout << "[Texture Success] Loaded: " << filename << " (ID: " << textureID << ")" << std::endl;
+    return textureID;
+}
 
 // ==========================================================
 // ROBOT LIGHTING CALCULATION FUNCTIONS
@@ -400,9 +473,20 @@ void resetMaterial() {
 // ==========================================================
 
 // Draw a floating disc 
-void drawFloatingDisc(float radius, float height) {
+void drawFloatingDisc(float radius, float height, GLuint textureID) {
     GLUquadric* quadric = gluNewQuadric();
     gluQuadricNormals(quadric, GLU_SMOOTH);
+
+    // --- 开启自动纹理坐标生成 ---
+    gluQuadricTexture(quadric, GL_TRUE);
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    // 如果纹理加载失败，使用白色混合
+    if (textureID == 0) glDisable(GL_TEXTURE_2D);
+    else glColor3f(1.0f, 1.0f, 1.0f);
+
     glPushMatrix();
     glTranslatef(0.0f, -height / 2.0f, 0.0f);
     glRotatef(90.0f, -1.0f, 0.0f, 0.0f);
@@ -414,6 +498,8 @@ void drawFloatingDisc(float radius, float height) {
     gluDisk(quadric, 0, radius, 80, 30);
 
     glPopMatrix();
+
+    glDisable(GL_TEXTURE_2D); 
     gluDeleteQuadric(quadric);
 }
 
@@ -428,6 +514,50 @@ void drawCube(float width, float height, float depth) {
 // Draw a sphere
 void drawSphere(float radius) {
     glutSolidSphere(radius, 20, 20);
+}
+
+// ==========================================================
+// SKY DOME FUNCTIONS
+// ==========================================================
+void drawSkyDome() {
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+
+    glTranslatef(0.0f, 0.0f, 0.0f);
+    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+
+    glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glDisable(GL_LIGHTING);      
+    glDepthMask(GL_FALSE);        
+
+    glColor3f(1.0f, 1.0f, 1.0f);  
+
+    glEnable(GL_TEXTURE_2D);
+    GLuint currentSky = (g_currentSkyIndex == 0) ? g_texSkyDay : g_texSkyNight;
+    glBindTexture(GL_TEXTURE_2D, currentSky);
+
+    if (currentSky == 0) {
+        glDisable(GL_TEXTURE_2D);
+        if (g_currentSkyIndex == 0) glColor3f(0.5f, 0.7f, 1.0f);
+        else glColor3f(0.0f, 0.0f, 0.2f); 
+    }
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+    GLUquadric* quad = gluNewQuadric();
+    if (quad) {
+        gluQuadricTexture(quad, GL_TRUE);
+        gluQuadricOrientation(quad, GLU_INSIDE);
+        float skyRadius = SURROUND_DISC_DISTANCE * 4.0f;
+        gluSphere(quad, skyRadius, 50, 50);
+
+        gluDeleteQuadric(quad);
+    }
+
+    glPopAttrib(); 
+    glPopMatrix();
 }
 
 // ==========================================================
@@ -470,22 +600,42 @@ void generateFractalTreeGrammar() {
 }
 
 void drawTreeLeaf(float size) {
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, g_texTreeLeaf);
+
+    if (g_texTreeLeaf != 0) glColor3f(1.0f, 1.0f, 1.0f);
+    else glDisable(GL_TEXTURE_2D);
+
     glBegin(GL_QUADS);
-    glNormal3f(0.0f, 0.0f, 1.0f); // 所有顶点法线都朝前
-    glVertex3f(0, 0, 0);
-    glVertex3f(size / 2.0f, size, 0);
-    glVertex3f(0, size * 2.0f, 0);
-    glVertex3f(-size / 2.0f, size, 0);
+    glNormal3f(0.0f, 0.0f, 1.0f);
+
+    // 映射纹理坐标 (0,0) 到 (1,1)
+    glTexCoord2f(0.5f, 0.0f); glVertex3f(0, 0, 0);             // 底部中心
+    glTexCoord2f(1.0f, 0.5f); glVertex3f(size / 2.0f, size, 0); // 右侧
+    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, size * 2.0f, 0);    // 顶部
+    glTexCoord2f(0.0f, 0.5f); glVertex3f(-size / 2.0f, size, 0);// 左侧
     glEnd();
+
+    glDisable(GL_TEXTURE_2D);
 }
 
 // 绘制一段树干 (一个圆柱体)
 void drawTreeBranch(float radius, float height) {
     glPushMatrix();
-    // 圆柱体默认沿Z轴，我们先把它旋转到沿Y轴向上
     glRotatef(-90, 1.0f, 0.0f, 0.0f);
+
     GLUquadric* quad = gluNewQuadric();
-    gluCylinder(quad, radius, radius * 0.8f, height, 8, 1); // 树枝逐渐变细
+    gluQuadricTexture(quad, GL_TRUE); // 开启纹理
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, g_texTreeBark);
+
+    if (g_texTreeBark != 0) glColor3f(1.0f, 1.0f, 1.0f); // 有贴图时用白色
+    else glDisable(GL_TEXTURE_2D); // 没贴图用原来的材质颜色
+
+    gluCylinder(quad, radius, radius * 0.8f, height, 8, 1);
+
+    glDisable(GL_TEXTURE_2D);
     gluDeleteQuadric(quad);
     glPopMatrix();
 }
@@ -543,7 +693,7 @@ void drawFractalTree() {
             break;
         }
     }
-    resetMaterial(); // 确保在绘制结束后重置材质
+    resetMaterial(); 
 }
 // Draw an icosahedron-based bush
 void drawBush() {
@@ -556,7 +706,7 @@ void drawBush() {
     static const GLfloat vertices[12][3] = {
         { -v1, v2, 0 },{ v1, v2, 0 },{ -v1, -v2, 0 },{ v1, -v2, 0 },
         { 0, -v1, v2 },{ 0, v1, v2 },{ 0, -v1, -v2 },{ 0, v1, -v2 },
-        { v2, 0, -v1 },{ v2, 0, v1 },{-v2, 0, -v1 },{-v2, 0, v1 }
+        { v2, 0, -v1 },{ v2, 0, v1 },{ -v2, 0, -v1 },{ -v2, 0, v1 }
     };
 
     static const GLint faces[20][3] = {
@@ -566,18 +716,38 @@ void drawBush() {
         { 4, 9, 5 },{ 2, 4, 11 },{ 6, 2, 10 },{ 8, 6, 7 },{ 9, 8, 1 }
     };
 
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, g_texBush);
+
+    if (g_texBush != 0) glColor3f(1.0f, 1.0f, 1.0f);
+    else glDisable(GL_TEXTURE_2D);
+
     glBegin(GL_TRIANGLES);
     for (int i = 0; i < 20; i++) {
-        const GLfloat* v1 = vertices[faces[i][0]];
-        const GLfloat* v2 = vertices[faces[i][1]];
-        const GLfloat* v3 = vertices[faces[i][2]];
-        glNormal3fv(v1); glVertex3fv(v1);
-        glNormal3fv(v2); glVertex3fv(v2);
-        glNormal3fv(v3); glVertex3fv(v3);
+        const GLfloat* ptr1 = vertices[faces[i][0]];
+        const GLfloat* ptr2 = vertices[faces[i][1]];
+        const GLfloat* ptr3 = vertices[faces[i][2]];
+
+        // --- 独立面贴图逻辑 ---
+
+        glNormal3fv(ptr1);
+        if (i % 2 == 0) glTexCoord2f(0.5f, 1.0f); // 顶
+        else            glTexCoord2f(0.0f, 0.0f); // 左下
+        glVertex3fv(ptr1);
+
+        glNormal3fv(ptr2);
+        if (i % 2 == 0) glTexCoord2f(0.0f, 0.0f); // 左下
+        else            glTexCoord2f(1.0f, 0.0f); // 右下
+        glVertex3fv(ptr2);
+
+        glNormal3fv(ptr3);
+        if (i % 2 == 0) glTexCoord2f(1.0f, 0.0f); // 右下
+        else            glTexCoord2f(0.5f, 1.0f); // 顶
+        glVertex3fv(ptr3);
     }
     glEnd();
+    glDisable(GL_TEXTURE_2D);
 }
-
 
 
 void drawFlowerPetal(vec3 v_center, vec3 v_edge1, vec3 v_edge2) {
@@ -1028,7 +1198,7 @@ void drawRobotChassis() {
 void drawRobotWheel() {
     glPushMatrix();
     glRotatef(90.0f, 0.0f, 0.0f, 1.0f);
-    drawFloatingDisc(ROBOT_WHEEL_RADIUS, ROBOT_WHEEL_WIDTH);
+    drawFloatingDisc(ROBOT_WHEEL_RADIUS, ROBOT_WHEEL_WIDTH,0);
     glPopMatrix();
 }
 
@@ -1311,6 +1481,8 @@ void display() {
     setupCamera();
 
     setupLights();
+
+    drawSkyDome();
     // Central disc and its contents (hierarchical modeling)
     glPushMatrix();
     {
@@ -1319,7 +1491,7 @@ void display() {
         // Central disc platform
         glPushMatrix();
         glColor3f(0.3f, 0.6f, 0.2f);
-        drawFloatingDisc(CENTRAL_DISC_RADIUS, CENTRAL_DISC_HEIGHT);
+        drawFloatingDisc(CENTRAL_DISC_RADIUS, CENTRAL_DISC_HEIGHT, g_texGroundCenter);
         glPopMatrix();
 
         // Robot on central disc
@@ -1360,7 +1532,7 @@ void display() {
 
             // Floating disc
             glColor3f(0.5f, 0.5f, 0.5f);
-            drawFloatingDisc(SURROUND_DISC_RADIUS, SURROUND_DISC_HEIGHT);
+            drawFloatingDisc(SURROUND_DISC_RADIUS, SURROUND_DISC_HEIGHT, g_texGroundSurround);
 
             // Building on disc
             glPushMatrix();
@@ -1412,12 +1584,12 @@ void mouse(int button, int state, int x, int y) {
     }
     else if (button == 3) {  // Scroll up - zoom in
         g_zoomFactor *= 0.9f;
-        if (g_zoomFactor < 0.5f) g_zoomFactor = 0.5f;
+        if (g_zoomFactor < 0.3f) g_zoomFactor = 0.3f;
         glutPostRedisplay();
     }
     else if (button == 4) {  // Scroll down - zoom out
         g_zoomFactor *= 1.1f;
-        if (g_zoomFactor > 3.0f) g_zoomFactor = 3.0f;
+        if (g_zoomFactor > 2.0f) g_zoomFactor = 2.0f;
         glutPostRedisplay();
     }
 }
@@ -1474,8 +1646,9 @@ void keyboard(unsigned char key, int x, int y) {
         g_showFlightPath = !g_showFlightPath;
     }
     // Robot light control
-    else if (key == 'l' || key == 'L') {
-        g_envLightOn = !g_envLightOn;
+    else if (key == 'n' || key == 'N') {
+        g_envLightOn = !g_envLightOn; 
+        g_currentSkyIndex = (g_currentSkyIndex + 1) % 2; 
     }
     else if (key == '+' || key == '=') {
         g_robotLightBrightness += 0.1f;
@@ -1563,7 +1736,7 @@ void initGL() {
     glEnable(GL_LIGHT0);
     glEnable(GL_COLOR_MATERIAL);
 
-
+    /*glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);*/
     // Initialize robot position
     float groundLevel = CENTRAL_DISC_Y_POS + (CENTRAL_DISC_HEIGHT / 2.0f);
     g_robot.posY = groundLevel + ROBOT_WHEEL_RADIUS;
@@ -1573,6 +1746,16 @@ void initGL() {
     g_robot.wheelRotation = 0.0f;
 
     initParticles();
+}
+
+void initTextures() {
+    g_texTreeBark = loadTexture("bark.bmp");
+    g_texTreeLeaf = loadTexture("leaf.bmp");
+    g_texGroundCenter = loadTexture("grass.bmp");
+    g_texGroundSurround = loadTexture("stone.bmp");
+    g_texBush = loadTexture("bush.bmp");
+    g_texSkyDay = loadTexture("day.bmp");
+    g_texSkyNight = loadTexture("night.bmp");
 }
 
 int main(int argc, char** argv) {
@@ -1585,6 +1768,8 @@ int main(int argc, char** argv) {
     initGL();
     initPaths();
     generateFractalTreeGrammar();
+    initTextures();
+
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
