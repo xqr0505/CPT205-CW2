@@ -339,13 +339,17 @@ void calculateRobotLightWorldDirection(GLdouble outDir[3]) {
 
 /**
  * @brief Setup all lights in the scene (global light + robot spotlight).
- * Should be called in display() before rendering.
  */
 void setupLights() {
     // --- Setup LIGHT0 (Main global ambient light) ---
     if (g_envLightOn) {
         glEnable(GL_LIGHT0);
-        GLfloat light0_position[] = { 4.0f, 8.0f, 6.0f, 1.0f };
+        GLfloat light0_ambient[] = { 0.15f, 0.15f, 0.15f, 1.0f };
+        GLfloat light0_diffuse[] = { 1.0f, 1.0f, 0.95f, 1.0f };
+        GLfloat light0_position[] = { 0.4f, 1.0f, -1.0f, 0.0f };
+        glLightfv(GL_LIGHT0, GL_AMBIENT, light0_ambient);
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse);
+        glLightfv(GL_LIGHT0, GL_SPECULAR, light0_ambient);
         glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
     }
     else {
@@ -820,16 +824,20 @@ void drawGardenScene() {
     // Draw multiple bushes at different positions
     vec3 bushPositions[] = {
         {-2.0f, 0.0f, 3.0f},
-        {-3.5f, 0.0f, 2.0f},
-        {-2.5f, 0.0f, 1.0f}
+        {-4.0f, 0.0f, 2.0f},
+        {-2.8f, 0.0f, 1.3f},
+        {-4.5f, 0.0f, 0.5f},
+        {-3.8f, 0.0f, -1.6f}
     };
     vec3 bushScales[] = {
         {1.5f, 1.5f, 1.5f},
         {1.2f, 1.2f, 1.2f},
-        {0.8f, 0.6f, 0.8f}
+        {0.8f, 0.6f, 0.8f},
+        {1.4f, 1.4f, 1.4f},
+        {1.6f, 1.6f, 1.6f},
     };
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 5; i++) {
         glPushMatrix();
         glTranslatef(bushPositions[i].x, bushPositions[i].y, bushPositions[i].z);
         glScalef(bushScales[i].x, bushScales[i].y, bushScales[i].z);
@@ -851,25 +859,33 @@ void drawFlowerGarden() {
     vec3 flowerColor = { 1.0f, 0.6f, 0.8f };
 
     vec3 flowerPositions[] = {
-        {-0.6f, 0.5f, 2.0f},
-        {-1.6f, 0.6f, 1.4f}
+        {-1.5f, 0.5f, 4.5f},
+        {-0.7f, 0.5f, 4.0f},
+        {-0.6f, 0.5f, 3.2f},
     };
     vec3 flowerScales[] = {
+        {0.35f, 0.35f, 0.35f},
         {0.4f, 0.4f, 0.4f},
-        {0.3f, 0.3f, 0.3f}
+        {0.3f, 0.3f, 0.3f},
+    };
+    vec3 flowerRotations[] = {
+        {130.0f, 70.0f, 80.0f},
+        {80.0f, 20.0f, 90.0f},
+        {30.0f, 30.0f, 80.0f},
     };
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 0; i++) {
         glPushMatrix();
         glTranslatef(flowerPositions[i].x, flowerPositions[i].y, flowerPositions[i].z);
-        glRotatef(120.0f, 1.0f, 0.0f, 0.0f);
-        glRotatef(20.0f, 0.0f, 0.0f, 1.0f);
+        glRotatef(flowerRotations[i].x, 1.0f, 0.0f, 0.0f); 
+        glRotatef(flowerRotations[i].y, 0.0f, 1.0f, 0.0f);
+        glRotatef(flowerRotations[i].z, 0.0f, 0.0f, 1.0f); 
         glScalef(flowerScales[i].x, flowerScales[i].y, flowerScales[i].z);
         drawFlower(flowerColor);
         glPopMatrix();
     }
-}
 
+}
 // ==========================================================
 // ROBOTIC ARM FUNCTIONS
 // ==========================================================
