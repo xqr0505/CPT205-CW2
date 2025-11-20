@@ -1159,23 +1159,21 @@ vec3 getPointOnPath(float progress, const std::vector<vec3>& path) {
 
 // Initialize flight paths
 void initPaths() {
-    float r = SURROUND_DISC_DISTANCE;
-
     // Path 1
-    g_skimmerPath1.push_back(vec3_create(r + 8.0f, 3.0f, 0.0f));
-    g_skimmerPath1.push_back(vec3_create(0.0f, 6.0f, r + 6.0f));
-    g_skimmerPath1.push_back(vec3_create(-r + 7.0f, 4.0f, r - 8.0f));
-    g_skimmerPath1.push_back(vec3_create(-r - 4.0f, 5.0f, 0.0f));
-    g_skimmerPath1.push_back(vec3_create(-r, 6.0f, -r + 2.0f));
-    g_skimmerPath1.push_back(vec3_create(0.0f, 10.0f, -r));
+    g_skimmerPath1.push_back(vec3_create(20.0f, 8.0f, 0.0f));
+    g_skimmerPath1.push_back(vec3_create(0.0f, 7.0f, 18.0f));
+    g_skimmerPath1.push_back(vec3_create(-5.0f, 4.0f, 4.0f));
+    g_skimmerPath1.push_back(vec3_create(-16.0f, 2.0f, 0.0f));
+    g_skimmerPath1.push_back(vec3_create(-12.0f, 3.0f, -10.0f));
+    g_skimmerPath1.push_back(vec3_create(0.0f, 9.0f, -12.0f));
 
     // Path 2
-    g_skimmerPath2.push_back(vec3_create(r - 7.0f, 3.0f, 0.0f));
-    g_skimmerPath2.push_back(vec3_create(0.0f, 6.0f, r + 3.0f));
-    g_skimmerPath2.push_back(vec3_create(-r - 8.0f, 4.0f, r - 8.0f));
-    g_skimmerPath2.push_back(vec3_create(-r - 4.0f, 6.0f, 0.0f));
-    g_skimmerPath2.push_back(vec3_create(-r, 6.0f, -r + 1.0f));
-    g_skimmerPath2.push_back(vec3_create(1.0f, 3.0f, -r - 5.0f));
+    g_skimmerPath2.push_back(vec3_create(5.0f, 7.0f, -4.0f));
+    g_skimmerPath2.push_back(vec3_create(9.0f, 8.0f, 0.0f));
+    g_skimmerPath2.push_back(vec3_create(2.0f, 5.0f, 9.0f));
+    g_skimmerPath2.push_back(vec3_create(-12.0f, 3.0f, 16.0f));
+    g_skimmerPath2.push_back(vec3_create(-12.0f, 6.0f, -10.0f));
+
 }
 
 // ==========================================================
@@ -1655,7 +1653,7 @@ void keyboard(unsigned char key, int x, int y) {
     }
     else if (key == '+' || key == '=') {
         g_robotLightBrightness += 0.1f;
-        if (g_robotLightBrightness > 3.0f) g_robotLightBrightness = 1.0f;
+        if (g_robotLightBrightness > 4.0f) g_robotLightBrightness = 4.0f;
     }
     else if (key == '-' || key == '_') {
         g_robotLightBrightness -= 0.1f;
