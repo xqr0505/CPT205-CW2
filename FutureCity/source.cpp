@@ -213,7 +213,8 @@ void drawWateringArm();
 void calculateNozzleWorldPosition(float baseRot, float lowerArmRot, float upperArmRot, GLdouble outPos[3]);
 
 // Building
-void drawFuturisticBuilding(float baseSize, float height, int numWindowFloors);
+//void drawFuturisticBuilding(float baseSize, float height, int numWindowFloors);
+void drawBuilding(int type);
 
 // Skimmer aircraft
 void drawWing();
@@ -975,32 +976,203 @@ void calculateNozzleWorldPosition(float baseRot, float lowerArmRot, float upperA
 // ==========================================================
 
 // Draw futuristic building with glowing windows
-void drawFuturisticBuilding(float baseSize, float height, int numWindowFloors) {
-    // Draw building frame
+//void drawFuturisticBuilding(float baseSize, float height, int numWindowFloors) {
+//    // Draw building frame
+//    setBuildingFrameMaterial();
+//    glPushMatrix();
+//    glTranslatef(0.0f, height / 2.0f, 0.0f);
+//    drawCube(baseSize, height, baseSize);
+//    glPopMatrix();
+//
+//    // Draw glowing windows
+//    GLfloat windowEmission[] = { 0.5f, 0.8f, 1.0f, 1.0f };
+//    setGlowingMaterial(windowEmission);
+//
+//    float windowHeight = height / (float)numWindowFloors * 0.6f;
+//    float floorHeight = height / (float)numWindowFloors;
+//    float windowDepthOffset = baseSize * 0.505f;
+//
+//    for (int i = 0; i < numWindowFloors; ++i) {
+//        float y_pos = i * floorHeight + floorHeight * 0.2f;
+//
+//        for (int side = 0; side < 4; ++side) {
+//            glPushMatrix();
+//            glRotatef(90.0f * side, 0.0f, 1.0f, 0.0f);
+//            glTranslatef(0.0f, y_pos, windowDepthOffset);
+//            drawCube(baseSize * 0.8f, windowHeight, 0.01f);
+//            glPopMatrix();
+//        }
+//    }
+//
+//    resetMaterial();
+//}
+
+// ==========================================================
+// BUILDING FUNCTIONS (REWRITTEN)
+// ==========================================================
+
+/**
+ * @brief 根据索引绘制 5 种建筑
+ */
+void drawBuilding(int type) {
+    float bWidth, bHeight; // 尺寸
+    int floors;            // 层数
+
+    switch (type) {
+    case 0: 
+        bWidth = 3.5f; bHeight = 7.0f; floors = 12;
+        break;
+    case 1:
+        bWidth = 4.0f; bHeight = 6.5f; floors = 8;
+        break;
+    case 2:
+        bWidth = 3.7f; bHeight = 6.8f; floors = 6;
+        break;
+    case 3: 
+        bWidth = 3.2f; bHeight = 10.5f; floors = 8;
+        break;
+    case 4: 
+        bWidth = 3.8f; bHeight = 6.5f; floors = 5;
+        break;
+    default:
+        bWidth = 3.5f; bHeight = 7.0f; floors = 10;
+        break;
+    }
+
     setBuildingFrameMaterial();
     glPushMatrix();
-    glTranslatef(0.0f, height / 2.0f, 0.0f);
-    drawCube(baseSize, height, baseSize);
+    glTranslatef(0.0f, bHeight / 2.0f, 0.0f);
+    drawCube(bWidth, bHeight, bWidth);
     glPopMatrix();
 
-    // Draw glowing windows
     GLfloat windowEmission[] = { 0.5f, 0.8f, 1.0f, 1.0f };
     setGlowingMaterial(windowEmission);
+    float depthOffset = bWidth * 0.505f; 
 
-    float windowHeight = height / (float)numWindowFloors * 0.6f;
-    float floorHeight = height / (float)numWindowFloors;
-    float windowDepthOffset = baseSize * 0.505f;
+    switch (type) {
+    case 0: 
+    {
+        float floorH = bHeight / floors;
+        for (int i = 0; i < floors; ++i) {
+            float y = i * floorH + floorH * 0.5f;
+            for (int s = 0; s < 4; ++s) {
+                glPushMatrix();
+                glRotatef(90.0f * s, 0.0f, 1.0f, 0.0f);
+                glTranslatef(0.0f, y, depthOffset);
+                drawCube(bWidth * 0.8f, floorH * 0.6f, 0.05f);
+                glPopMatrix();
+            }
+        }
+    }
+    break;
 
-    for (int i = 0; i < numWindowFloors; ++i) {
-        float y_pos = i * floorHeight + floorHeight * 0.2f;
+    case 1: 
+    {
+        float floorH = bHeight / floors;
+        for (int i = 0; i < floors; ++i) {
+            float y = i * floorH + floorH * 0.5f;
+            for (int s = 0; s < 4; ++s) {
+                glPushMatrix();
+                glRotatef(90.0f * s, 0.0f, 1.0f, 0.0f);
+                glTranslatef(0.0f, y, depthOffset);
+                drawCube(bWidth * 0.8f, floorH * 0.2f, 0.05f);
+                glPopMatrix();
+            }
+        }
+    }
+    break;
 
-        for (int side = 0; side < 4; ++side) {
+    case 2: 
+    {
+        float floorH = bHeight / floors;
+        int winsPerFloor = 4; 
+        for (int i = 0; i < floors; ++i) {
+            float y = i * floorH + floorH * 0.5f;
+
+            for (int s = 0; s < 4; ++s) {
+                glPushMatrix();
+                glRotatef(90.0f * s, 0.0f, 1.0f, 0.0f);
+                glTranslatef(0.0f, y, depthOffset);
+
+                float rowW = bWidth * 0.9f;
+                float step = rowW / winsPerFloor;
+                float startX = -rowW / 2.0f + step / 2.0f;
+
+                for (int w = 0; w < winsPerFloor; w++) {
+                    glPushMatrix();
+                    glTranslatef(startX + w * step, 0.0f, 0.0f);
+                    drawCube(floorH * 0.5f, floorH * 0.35, 0.05f);
+                    glPopMatrix();
+                }
+                glPopMatrix();
+            }
+        }
+    }
+    break;
+
+    case 3:
+    {
+        int strips = 3;
+        float stripW = bWidth / (strips * 2.0f);
+        float startX = -(bWidth / 2.0f) + stripW;
+        float gap = (bWidth - 2 * stripW) / (strips - 1);
+        float stripH = bHeight * 0.9f;
+        float y = bHeight / 2.0f;
+
+        for (int s = 0; s < 4; ++s) {
             glPushMatrix();
-            glRotatef(90.0f * side, 0.0f, 1.0f, 0.0f);
-            glTranslatef(0.0f, y_pos, windowDepthOffset);
-            drawCube(baseSize * 0.8f, windowHeight, 0.01f);
+            glRotatef(90.0f * s, 0.0f, 1.0f, 0.0f);
+            glTranslatef(0.0f, y, depthOffset);
+
+            for (int k = 0; k < strips; k++) {
+                glPushMatrix();
+                float x = -bWidth * 0.3f + k * (bWidth * 0.3f);
+                glTranslatef(x, 0.0f, 0.0f);
+                drawCube(bWidth * 0.06f, stripH, 0.05f);
+                glPopMatrix();
+            }
             glPopMatrix();
         }
+    }
+    break;
+
+    case 4: 
+    {
+        float lineThick = 0.25f; 
+        float halfW = bWidth / 2.0f;
+        float halfH = bHeight / 2.0f;
+
+        for (int s = 0; s < 4; ++s) {
+            glPushMatrix();
+            glRotatef(90.0f * s, 0.0f, 1.0f, 0.0f); 
+
+            glTranslatef(0.0f, halfH, depthOffset);
+
+
+            glPushMatrix();
+            glTranslatef(0.0f, halfH - lineThick / 2.0f, 0.0f);
+            drawCube(bWidth, lineThick, 0.05f);
+            glPopMatrix();
+
+            glPushMatrix();
+            glTranslatef(0.0f, -(halfH - lineThick / 2.0f), 0.0f);
+            drawCube(bWidth, lineThick, 0.05f);
+            glPopMatrix();
+
+            glPushMatrix();
+            glTranslatef(-(halfW - lineThick / 2.0f), 0.0f, 0.0f);
+            drawCube(lineThick, bHeight - 2 * lineThick, 0.05f);
+            glPopMatrix();
+
+            glPushMatrix();
+            glTranslatef(halfW - lineThick / 2.0f, 0.0f, 0.0f);
+            drawCube(lineThick, bHeight - 2 * lineThick, 0.05f);
+            glPopMatrix();
+
+            glPopMatrix(); 
+        }
+    }
+    break;
     }
 
     resetMaterial();
@@ -1539,7 +1711,7 @@ void display() {
             glPushMatrix();
             {
                 glTranslatef(0.0f, SURROUND_DISC_HEIGHT / 2.0f, 0.0f);
-                drawFuturisticBuilding(BUILDING_BASE, BUILDING_HEIGHT, 15);
+                drawBuilding(i);
             }
             glPopMatrix();
         }
