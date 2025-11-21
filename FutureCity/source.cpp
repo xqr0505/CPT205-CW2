@@ -114,6 +114,29 @@ struct Particle {
     float vx, vy, vz;
 };
 
+enum MenuOption {
+    MENU_TOGGLE_DAY_NIGHT = 1,
+    MENU_TOGGLE_PATH,
+    MENU_COLOR_CYAN,
+    MENU_COLOR_RED,
+    MENU_COLOR_GREEN,
+    MENU_COLOR_GOLD,
+    MENU_COLOR_PURPLE
+};
+
+
+const float g_glowColors[5][3] = {
+    {0.5f, 0.8f, 1.0f},      // 蓝色 
+    {1.0f, 0.549f, 0.0f},    // 橘色 
+    {0.753f, 0.376f, 0.898f},// 紫色 
+    {0.0f, 1.0f, 0.502f},    // 绿色 
+    {1.0f, 1.0f, 0.0f}       // 黄色
+};
+
+int g_currentGlowColorIndex = 0; // 当前选中的颜色索引
+const int TOTAL_COLORS = 5;
+
+
 // ==========================================================
 // GLOBAL STATE
 // =========================================================
@@ -1017,6 +1040,11 @@ void calculateNozzleWorldPosition(float baseRot, float lowerArmRot, float upperA
 void drawBuilding(int type) {
     float bWidth, bHeight; // 尺寸
     int floors;            // 层数
+    GLfloat r = g_glowColors[g_currentGlowColorIndex][0];
+    GLfloat g = g_glowColors[g_currentGlowColorIndex][1];
+    GLfloat b = g_glowColors[g_currentGlowColorIndex][2];
+
+    GLfloat windowEmission[] = { r, g, b, 1.0f };
 
     switch (type) {
     case 0: 
@@ -1045,7 +1073,6 @@ void drawBuilding(int type) {
     drawCube(bWidth, bHeight, bWidth);
     glPopMatrix();
 
-    GLfloat windowEmission[] = { 0.5f, 0.8f, 1.0f, 1.0f };
     setGlowingMaterial(windowEmission);
     float depthOffset = bWidth * 0.505f; 
 
@@ -1282,8 +1309,13 @@ void drawSkimmer() {
     glPopMatrix();
 
     // --- 3. Glowing Rings ---
-    GLfloat ringEmission[] = { 0.5f, 0.8f, 1.0f, 1.0f };
+    GLfloat r = g_glowColors[g_currentGlowColorIndex][0];
+    GLfloat g = g_glowColors[g_currentGlowColorIndex][1];
+    GLfloat b = g_glowColors[g_currentGlowColorIndex][2];
+
+    GLfloat ringEmission[] = { r, g, b, 1.0f };
     setGlowingMaterial(ringEmission);
+
     drawGlowingRing(SKIMMER_LENGTH * 0.3f, 0.2f);
     drawGlowingRing(SKIMMER_LENGTH * -0.3f, 0.2f);
 
@@ -1334,7 +1366,7 @@ void initPaths() {
     // Path 1
     g_skimmerPath1.push_back(vec3_create(20.0f, 8.0f, 0.0f));
     g_skimmerPath1.push_back(vec3_create(0.0f, 7.0f, 18.0f));
-    g_skimmerPath1.push_back(vec3_create(-5.0f, 4.0f, 4.0f));
+    g_skimmerPath1.push_back(vec3_create(-5.0f, 4.0f, 4.0f)); 
     g_skimmerPath1.push_back(vec3_create(-16.0f, 2.0f, 0.0f));
     g_skimmerPath1.push_back(vec3_create(-12.0f, 3.0f, -10.0f));
     g_skimmerPath1.push_back(vec3_create(0.0f, 9.0f, -12.0f));
@@ -1344,7 +1376,7 @@ void initPaths() {
     g_skimmerPath2.push_back(vec3_create(9.0f, 8.0f, 0.0f));
     g_skimmerPath2.push_back(vec3_create(2.0f, 5.0f, 9.0f));
     g_skimmerPath2.push_back(vec3_create(-12.0f, 3.0f, 16.0f));
-    g_skimmerPath2.push_back(vec3_create(-12.0f, 6.0f, -10.0f));
+    g_skimmerPath2.push_back(vec3_create(-14.0f, 6.0f, -10.0f));
 
 }
 
@@ -1460,8 +1492,10 @@ void drawRobot() {
         drawRobotCameraHead();
         glPopMatrix();
 
-
-        GLfloat stripeEmission[] = { 0.5f, 0.8f, 1.0f, 1.0f };
+        float r = g_glowColors[g_currentGlowColorIndex][0];
+        float g = g_glowColors[g_currentGlowColorIndex][1];
+        float b = g_glowColors[g_currentGlowColorIndex][2];
+        GLfloat stripeEmission[] = { r, g, b, 1.0f };
         setGlowingMaterial(stripeEmission);
 
         const float stripe_thickness = 0.05f;
@@ -1818,6 +1852,9 @@ void keyboard(unsigned char key, int x, int y) {
     else if (key == 't' || key == 'T') {
         g_showFlightPath = !g_showFlightPath;
     }
+    else if (key == 'k' || key == 'K') {
+        g_currentGlowColorIndex = (g_currentGlowColorIndex + 1) % TOTAL_COLORS;
+    }
     // Robot light control
     else if (key == 'n' || key == 'N') {
         g_envLightOn = !g_envLightOn; 
@@ -1902,6 +1939,48 @@ void idle() {
 // INITIALIZATION AND MAIN
 // ==========================================================
 
+void onMenu(int item) {
+    switch (item) {
+    case MENU_TOGGLE_DAY_NIGHT:
+        // 切换灯光和天空盒
+        g_envLightOn = !g_envLightOn;
+        g_currentSkyIndex = (g_currentSkyIndex + 1) % 2;
+        break;
+
+    case MENU_TOGGLE_PATH:
+        g_showFlightPath = !g_showFlightPath;
+        break;
+
+        // 颜色选择
+    case MENU_COLOR_CYAN:   g_currentGlowColorIndex = 0; break;
+    case MENU_COLOR_RED:    g_currentGlowColorIndex = 1; break;
+    case MENU_COLOR_GREEN:  g_currentGlowColorIndex = 2; break;
+    case MENU_COLOR_GOLD:   g_currentGlowColorIndex = 3; break;
+    case MENU_COLOR_PURPLE: g_currentGlowColorIndex = 4; break;
+    }
+
+    glutPostRedisplay(); // 刷新画面
+}
+
+void setupMenus() {
+    // 1. 创建二级菜单 (颜色选择)
+    int subMenuColor = glutCreateMenu(onMenu);
+    glutAddMenuEntry("Blue", MENU_COLOR_CYAN);
+    glutAddMenuEntry("Orange", MENU_COLOR_RED);
+    glutAddMenuEntry("Purple", MENU_COLOR_GREEN);
+    glutAddMenuEntry("Green", MENU_COLOR_GOLD);
+    glutAddMenuEntry("Yellow", MENU_COLOR_PURPLE);
+
+    // 2. 创建主菜单
+    int mainMenu = glutCreateMenu(onMenu);
+    glutAddMenuEntry("Toggle Day/Night", MENU_TOGGLE_DAY_NIGHT);
+    glutAddMenuEntry("Toggle Flight Path", MENU_TOGGLE_PATH);
+    glutAddSubMenu("Glow Color", subMenuColor);
+
+    // 3. 绑定到鼠标右键
+    glutAttachMenu(GLUT_RIGHT_BUTTON);
+}
+
 void initGL() {
     glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
     glEnable(GL_DEPTH_TEST);
@@ -1942,7 +2021,7 @@ int main(int argc, char** argv) {
     initPaths();
     generateFractalTreeGrammar();
     initTextures();
-
+    setupMenus();
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
