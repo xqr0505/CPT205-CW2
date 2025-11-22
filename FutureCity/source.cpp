@@ -155,15 +155,15 @@ bool g_isRobotView = false;
 Robot g_robot;
 //float g_robotCameraAngleY = 0.0f;
 bool g_robotLightOn = true;         // 车灯开关状态
-float g_robotLightBrightness = 0.8f;   // 车灯亮度 (0.0 到 1.0)
+float g_robotLightBrightness = 1.0f;   // 车灯亮度
 
 // Global lighting state
 bool g_envLightOn = true;
 
 // Robotic arm state
 float armBaseAngle = 0.0f;
-float armLowerAngle = 45.0f;
-float armUpperAngle = 60.0f;
+float armLowerAngle = 120.0f;
+float armUpperAngle = 30.0f;
 float nozzleAngle = 90.0f;
 bool isWatering = false;
 
@@ -1545,7 +1545,9 @@ void updateParticles(float dt) {
         GLdouble nozzlePos[3];
         calculateNozzleWorldPosition(armBaseAngle, armLowerAngle, armUpperAngle, nozzlePos);
 
-        for (int i = 0; i < MAX_PARTICLES; i++) {
+        int emitCount = 4; 
+        int emitted = 0;
+        for (int i = 0; i < MAX_PARTICLES && emitted < emitCount; i++) {
             if (!waterParticles[i].active) {
                 waterParticles[i].active = true;
                 waterParticles[i].life = 1.5f;
@@ -1557,7 +1559,7 @@ void updateParticles(float dt) {
                 waterParticles[i].vy = 1.0f;
                 waterParticles[i].vz = distribution(generator);
 
-                break;
+                emitted++;
             }
         }
     }
@@ -1963,7 +1965,6 @@ void onMenu(int item) {
 }
 
 void setupMenus() {
-    // 1. 创建二级菜单 (颜色选择)
     int subMenuColor = glutCreateMenu(onMenu);
     glutAddMenuEntry("Blue", MENU_COLOR_CYAN);
     glutAddMenuEntry("Orange", MENU_COLOR_RED);
@@ -1971,13 +1972,11 @@ void setupMenus() {
     glutAddMenuEntry("Green", MENU_COLOR_GOLD);
     glutAddMenuEntry("Yellow", MENU_COLOR_PURPLE);
 
-    // 2. 创建主菜单
     int mainMenu = glutCreateMenu(onMenu);
     glutAddMenuEntry("Toggle Day/Night", MENU_TOGGLE_DAY_NIGHT);
     glutAddMenuEntry("Toggle Flight Path", MENU_TOGGLE_PATH);
     glutAddSubMenu("Glow Color", subMenuColor);
 
-    // 3. 绑定到鼠标右键
     glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 
@@ -2011,6 +2010,33 @@ void initTextures() {
 }
 
 int main(int argc, char** argv) {
+
+    std::cout << "Robot Movement:\n";
+    std::cout << "  W / w : Move forward\n";
+    std::cout << "  S / s : Move backward\n";
+    std::cout << "  A / a : Turn left\n";
+    std::cout << "  D / d : Turn right\n";
+    std::cout << "Camera:\n";
+    std::cout << "  C / c : Toggle robot first-person view\n";
+    std::cout << "Robotic Arm:\n";
+    std::cout << "  1 / 2: Raise/Lower lower arm\n";
+    std::cout << "  3 / 4 : Raise/Lower upper arm\n";
+    std::cout << "  5 / 6: Rotate arm base\n";
+    std::cout << "Watering:\n";
+    std::cout << "  P / p : Start watering (hold)\n";
+    std::cout << "Lighting:\n";
+    std::cout << "  N / n : Toggle day/night mode\n";
+    std::cout << "  + / = : Increase robot headlight brightness\n";
+    std::cout << "  - / _ : Decrease robot headlight brightness\n";
+    std::cout << "Visuals:\n";
+    std::cout << "  T / t : Toggle flight path display\n";
+    std::cout << "  K / k : Switch glow color\n";
+    std::cout << "Mouse:\n";
+    std::cout << "  Left button drag : Rotate global camera\n";
+    std::cout << "  Scroll wheel : Zoom in/out\n";
+    std::cout << "Menu (Right Mouse Button):\n";
+    std::cout << "  Change glow color, toggle day/night, toggle flight path\n";
+
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowSize(g_windowWidth, g_windowHeight);
