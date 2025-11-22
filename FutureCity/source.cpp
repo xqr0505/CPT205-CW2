@@ -118,10 +118,10 @@ enum MenuOption {
     MENU_TOGGLE_DAY_NIGHT = 1,
     MENU_TOGGLE_PATH,
     MENU_COLOR_CYAN,
-    MENU_COLOR_RED,
-    MENU_COLOR_GREEN,
-    MENU_COLOR_GOLD,
+    MENU_COLOR_ORANGE,
     MENU_COLOR_PURPLE,
+    MENU_COLOR_GREEN,
+    MENU_COLOR_YELLO,
     MENU_TOGGLE_INSTRUCTIONS
 };
 
@@ -2039,10 +2039,10 @@ void onMenu(int item) {
 
         // 颜色选择
     case MENU_COLOR_CYAN:   g_currentGlowColorIndex = 0; break;
-    case MENU_COLOR_RED:    g_currentGlowColorIndex = 1; break;
-    case MENU_COLOR_GREEN:  g_currentGlowColorIndex = 2; break;
-    case MENU_COLOR_GOLD:   g_currentGlowColorIndex = 3; break;
-    case MENU_COLOR_PURPLE: g_currentGlowColorIndex = 4; break;
+    case MENU_COLOR_ORANGE:    g_currentGlowColorIndex = 1; break;
+    case MENU_COLOR_PURPLE:  g_currentGlowColorIndex = 2; break;
+    case MENU_COLOR_GREEN:   g_currentGlowColorIndex = 3; break;
+    case MENU_COLOR_YELLO: g_currentGlowColorIndex = 4; break;
     }
 
     glutPostRedisplay(); // 刷新画面
@@ -2051,10 +2051,10 @@ void onMenu(int item) {
 void setupMenus() {
     int subMenuColor = glutCreateMenu(onMenu);
     glutAddMenuEntry("Blue", MENU_COLOR_CYAN);
-    glutAddMenuEntry("Orange", MENU_COLOR_RED);
-    glutAddMenuEntry("Purple", MENU_COLOR_GREEN);
-    glutAddMenuEntry("Green", MENU_COLOR_GOLD);
-    glutAddMenuEntry("Yellow", MENU_COLOR_PURPLE);
+    glutAddMenuEntry("Orange", MENU_COLOR_ORANGE);
+    glutAddMenuEntry("Purple", MENU_COLOR_PURPLE);
+    glutAddMenuEntry("Green", MENU_COLOR_GREEN);
+    glutAddMenuEntry("Yellow", MENU_COLOR_YELLO);
 
     int mainMenu = glutCreateMenu(onMenu);
     glutAddMenuEntry("Toggle Day/Night", MENU_TOGGLE_DAY_NIGHT);
