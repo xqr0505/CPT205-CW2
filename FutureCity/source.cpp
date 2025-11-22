@@ -121,7 +121,8 @@ enum MenuOption {
     MENU_COLOR_RED,
     MENU_COLOR_GREEN,
     MENU_COLOR_GOLD,
-    MENU_COLOR_PURPLE
+    MENU_COLOR_PURPLE,
+    MENU_TOGGLE_INSTRUCTIONS
 };
 
 
@@ -192,6 +193,9 @@ GLuint g_texSkyDay = 0;
 GLuint g_texSkyNight = 0;
 int g_currentSkyIndex = 0; // 0 = Day, 1 = Night
 
+// Instruction Panel State
+bool g_showInstructionPanel = false;
+GLuint g_texControls = 0;
 
 
 // ==========================================================
@@ -257,6 +261,7 @@ void drawWaterParticles();
 
 // Camera
 void setupCamera();
+void drawInstructionPanel();
 // ==========================================================
 // TEXTURE LOADING FUNCTIONS
 // ==========================================================
@@ -372,7 +377,7 @@ void setupLights() {
     // --- Setup LIGHT0 (Main global ambient light) ---
     if (g_envLightOn) {
         glEnable(GL_LIGHT0);
-        GLfloat light0_ambient[] = { 0.15f, 0.15f, 0.15f, 1.0f };
+        GLfloat light0_ambient[] = { 0.15f, 0.15f, 0.2f, 1.0f };
         GLfloat light0_diffuse[] = { 1.0f, 1.0f, 0.95f, 1.0f };
         GLfloat light0_position[] = { 0.4f, 1.0f, -1.0f, 0.0f };
         glLightfv(GL_LIGHT0, GL_AMBIENT, light0_ambient);
@@ -443,7 +448,9 @@ void setupLights() {
 // MATERIAL FUNCTIONS
 // ==========================================================
 
-// Generic material setter
+/**
+ * @brief Set material properties for the robot's body and components based on the selected glow color index.
+ */
 void setMaterial(const GLfloat* ambient, const GLfloat* diffuse, const GLfloat* specular, float shininess, const GLfloat* emission) {
     glDisable(GL_COLOR_MATERIAL);
     glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
@@ -453,7 +460,9 @@ void setMaterial(const GLfloat* ambient, const GLfloat* diffuse, const GLfloat* 
     glMaterialfv(GL_FRONT, GL_EMISSION, emission);
 }
 
-// Building frame material (dark gray metallic)
+/**
+ * @brief Set the material properties for the building frame (dark gray metallic).
+ */
 void setBuildingFrameMaterial() {
     GLfloat ambient[] = { 0.15f, 0.15f, 0.2f, 1.0f };
     GLfloat diffuse[] = { 0.2f, 0.2f, 0.25f, 1.0f };
@@ -462,12 +471,17 @@ void setBuildingFrameMaterial() {
     setMaterial(ambient, diffuse, specular, 30.0f, emission);
 }
 
-// Glowing material (for windows and rings)
+/**
+ * @brief Set the glowing material properties for windows and rings.
+ */
 void setGlowingMaterial(const GLfloat* emissionColor) {
     GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     setMaterial(black, black, black, 0.0f, emissionColor);
 }
 
+/**
+ * @brief Set material properties for the skimmer aircraft body.
+ */
 void setSkimmerBodyMaterial() {
     GLfloat ambient[] = { 0.1f, 0.1f, 0.15f, 1.0f };
     GLfloat diffuse[] = { 0.85f, 0.85f, 0.95f, 1.0f };
@@ -476,6 +490,9 @@ void setSkimmerBodyMaterial() {
     setMaterial(ambient, diffuse, specular, 3.0f, emission);
 }
 
+/**
+ * @brief Set material properties for tree trunks.
+ */
 void setTreeTrunkMaterial() {
     GLfloat ambient[] = { 0.4f, 0.25f, 0.15f, 1.0f };
     GLfloat diffuse[] = { 0.5f, 0.35f, 0.2f, 1.0f };
@@ -484,6 +501,9 @@ void setTreeTrunkMaterial() {
     setMaterial(ambient, diffuse, specular, 5.0f, emission);
 }
 
+/**
+ * @brief Set material properties for tree leaves.
+ */
 void setTreeLeafMaterial() {
     GLfloat ambient[] = { 0.1f, 0.3f, 0.1f, 1.0f };
     GLfloat diffuse[] = { 0.2f, 0.6f, 0.2f, 1.0f };
@@ -498,7 +518,6 @@ void resetMaterial() {
     GLfloat emission[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     glMaterialfv(GL_FRONT, GL_EMISSION, emission);
 }
-
 
 // ==========================================================
 // PRIMITIVE DRAWING FUNCTIONS
@@ -610,7 +629,7 @@ void drawSkyDome() {
 void generateFractalTreeGrammar() {
     std::string axiom = "F"; // 初始公理：一根树干
     // 重写规则：将每个 'F' 替换为更复杂的结构
-    std::string rule = "F[+F&F][-F^F][/F\F]";
+    std::string rule = "F[+F&F][-F^F](/F\\F)";
 
     std::string currentString = axiom;
 
@@ -631,6 +650,10 @@ void generateFractalTreeGrammar() {
     // std::cout << "Generated Grammar (" << FRACTAL_TREE_ITERATIONS << " iterations):\n" << g_fractalTreeGrammar << std::endl;
 }
 
+/**
+ * @brief 绘制树叶
+ * @param size 叶子的大小
+ */
 void drawTreeLeaf(float size) {
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, g_texTreeLeaf);
@@ -995,43 +1018,7 @@ void calculateNozzleWorldPosition(float baseRot, float lowerArmRot, float upperA
 }
 
 // ==========================================================
-// BUILDING FUNCTIONS
-// ==========================================================
-
-// Draw futuristic building with glowing windows
-//void drawFuturisticBuilding(float baseSize, float height, int numWindowFloors) {
-//    // Draw building frame
-//    setBuildingFrameMaterial();
-//    glPushMatrix();
-//    glTranslatef(0.0f, height / 2.0f, 0.0f);
-//    drawCube(baseSize, height, baseSize);
-//    glPopMatrix();
-//
-//    // Draw glowing windows
-//    GLfloat windowEmission[] = { 0.5f, 0.8f, 1.0f, 1.0f };
-//    setGlowingMaterial(windowEmission);
-//
-//    float windowHeight = height / (float)numWindowFloors * 0.6f;
-//    float floorHeight = height / (float)numWindowFloors;
-//    float windowDepthOffset = baseSize * 0.505f;
-//
-//    for (int i = 0; i < numWindowFloors; ++i) {
-//        float y_pos = i * floorHeight + floorHeight * 0.2f;
-//
-//        for (int side = 0; side < 4; ++side) {
-//            glPushMatrix();
-//            glRotatef(90.0f * side, 0.0f, 1.0f, 0.0f);
-//            glTranslatef(0.0f, y_pos, windowDepthOffset);
-//            drawCube(baseSize * 0.8f, windowHeight, 0.01f);
-//            glPopMatrix();
-//        }
-//    }
-//
-//    resetMaterial();
-//}
-
-// ==========================================================
-// BUILDING FUNCTIONS (REWRITTEN)
+// BUILDING FUNCTIONS 
 // ==========================================================
 
 /**
@@ -1639,6 +1626,86 @@ void setupCamera() {
 }
 
 // ==========================================================
+// INSTRUCTION PANEL FUNCTIONS
+// ==========================================================
+
+/**
+ * @brief Draw instruction panel as 2D overlay in screen center
+ * The panel is a 4:3 aspect ratio rectangle with controls.bmp texture
+ */
+void drawInstructionPanel() {
+    // Save current matrices and attributes
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0, g_windowWidth, 0, g_windowHeight);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Disable depth test and lighting for 2D overlay
+    glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+
+    // Enable blending for semi-transparent background
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Calculate panel size (4:3 aspect ratio, covering about 80% of screen height)
+    float panelHeight = g_windowHeight * 0.8f;
+    float panelWidth = panelHeight * (4.0f / 3.0f);
+
+    // Center the panel
+    float panelX = (g_windowWidth - panelWidth) / 2.0f;
+    float panelY = (g_windowHeight - panelHeight) / 2.0f;
+
+    // Draw semi-transparent dark background
+    glColor4f(0.0f, 0.0f, 0.0f, 0.7f);
+    glBegin(GL_QUADS);
+    glVertex2f(panelX - 10, panelY - 10);
+    glVertex2f(panelX + panelWidth + 10, panelY - 10);
+    glVertex2f(panelX + panelWidth + 10, panelY + panelHeight + 10);
+    glVertex2f(panelX - 10, panelY + panelHeight + 10);
+    glEnd();
+
+    // Draw textured panel
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, g_texControls);
+
+    if (g_texControls != 0) {
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+    else {
+        // Fallback: white rectangle if texture not loaded
+        glDisable(GL_TEXTURE_2D);
+        glColor4f(0.9f, 0.9f, 0.9f, 0.9f);
+    }
+
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f); glVertex2f(panelX, panelY);
+    glTexCoord2f(1.0f, 0.0f); glVertex2f(panelX + panelWidth, panelY);
+    glTexCoord2f(1.0f, 1.0f); glVertex2f(panelX + panelWidth, panelY + panelHeight);
+    glTexCoord2f(0.0f, 1.0f); glVertex2f(panelX, panelY + panelHeight);
+    glEnd();
+
+    glDisable(GL_TEXTURE_2D);
+
+    // Restore attributes and matrices
+    glPopAttrib();
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    // Restore modelview mode for subsequent rendering
+    glMatrixMode(GL_MODELVIEW);
+}
+
+// ==========================================================
 // SCENE RENDERING
 // ==========================================================
 
@@ -1665,7 +1732,9 @@ void drawFlightPath(const std::vector<vec3>& path, vec3 color) {
 void drawAnimatedSkimmer(float progress, const std::vector<vec3>& path) {
     vec3 currentPos = getPointOnPath(progress, path);
     float next_progress = progress + 0.01f;
-    if (next_progress >= path.size()) next_progress -= path.size();
+    if (next_progress >= path.size()) {
+        next_progress -= path.size();
+    }
     vec3 nextPos = getPointOnPath(next_progress, path);
     vec3 direction = vec3_normalize(vec3_sub(nextPos, currentPos));
 
@@ -1767,6 +1836,11 @@ void display() {
     drawAnimatedSkimmer(g_skimmer1_progress, g_skimmerPath1);
     drawAnimatedSkimmer(g_skimmer2_progress, g_skimmerPath2);
 
+    // Draw instruction panel overlay if enabled
+    if (g_showInstructionPanel) {
+        drawInstructionPanel();
+    }
+
     glutSwapBuffers();
 }
 
@@ -1775,6 +1849,8 @@ void display() {
 // ==========================================================
 
 void reshape(int width, int height) {
+    g_windowWidth = width;
+    g_windowHeight = height;
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -1856,6 +1932,10 @@ void keyboard(unsigned char key, int x, int y) {
     }
     else if (key == 'k' || key == 'K') {
         g_currentGlowColorIndex = (g_currentGlowColorIndex + 1) % TOTAL_COLORS;
+    }
+    // Instruction panel
+    else if (key == 'i' || key == 'I') {
+        g_showInstructionPanel = !g_showInstructionPanel;
     }
     // Robot light control
     else if (key == 'n' || key == 'N') {
@@ -1953,6 +2033,10 @@ void onMenu(int item) {
         g_showFlightPath = !g_showFlightPath;
         break;
 
+    case MENU_TOGGLE_INSTRUCTIONS:
+        g_showInstructionPanel = !g_showInstructionPanel;
+        break;
+
         // 颜色选择
     case MENU_COLOR_CYAN:   g_currentGlowColorIndex = 0; break;
     case MENU_COLOR_RED:    g_currentGlowColorIndex = 1; break;
@@ -1975,6 +2059,7 @@ void setupMenus() {
     int mainMenu = glutCreateMenu(onMenu);
     glutAddMenuEntry("Toggle Day/Night", MENU_TOGGLE_DAY_NIGHT);
     glutAddMenuEntry("Toggle Flight Path", MENU_TOGGLE_PATH);
+    glutAddMenuEntry("Toggle Instructions", MENU_TOGGLE_INSTRUCTIONS);
     glutAddSubMenu("Glow Color", subMenuColor);
 
     glutAttachMenu(GLUT_RIGHT_BUTTON);
@@ -2007,6 +2092,7 @@ void initTextures() {
     g_texBush = loadTexture("bush.bmp");
     g_texSkyDay = loadTexture("day.bmp");
     g_texSkyNight = loadTexture("night.bmp");
+    g_texControls = loadTexture("controls.bmp");
 }
 
 int main(int argc, char** argv) {
@@ -2031,11 +2117,12 @@ int main(int argc, char** argv) {
     std::cout << "Visuals:\n";
     std::cout << "  T / t : Toggle flight path display\n";
     std::cout << "  K / k : Switch glow color\n";
+    std::cout << "  I / i : Toggle instruction panel\n";
     std::cout << "Mouse:\n";
     std::cout << "  Left button drag : Rotate global camera\n";
     std::cout << "  Scroll wheel : Zoom in/out\n";
     std::cout << "Menu (Right Mouse Button):\n";
-    std::cout << "  Change glow color, toggle day/night, toggle flight path\n";
+    std::cout << "  Change glow color, toggle day/night, toggle flight path, show instructions\n";
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
