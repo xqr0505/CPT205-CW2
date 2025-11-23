@@ -206,7 +206,7 @@ void initTextures();
 void initGL();
 void initPaths();
 void initParticles();
-
+void initRobot();
 // Main loop callbacks
 void display();
 void reshape(int width, int height);
@@ -646,8 +646,7 @@ void generateFractalTreeGrammar() {
         currentString = nextString;
     }
     g_fractalTreeGrammar = currentString;
-    // Optional: Print the grammar to see the complexity
-    // std::cout << "Generated Grammar (" << FRACTAL_TREE_ITERATIONS << " iterations):\n" << g_fractalTreeGrammar << std::endl;
+ 
 }
 
 /**
@@ -1513,6 +1512,14 @@ void drawRobot() {
     resetMaterial();
 }
 
+void initRobot() {
+    float groundLevel = CENTRAL_DISC_Y_POS + (CENTRAL_DISC_HEIGHT / 2.0f);
+    g_robot.posY = groundLevel + ROBOT_WHEEL_RADIUS;
+    g_robot.posX = 1.0f;
+    g_robot.posZ = 1.0f;
+    g_robot.angleY = 0.0f;
+    g_robot.wheelRotation = 0.0f;
+}
 // ==========================================================
 // PARTICLE SYSTEM FUNCTIONS
 // ==========================================================
@@ -2073,13 +2080,7 @@ void initGL() {
     glEnable(GL_COLOR_MATERIAL);
 
     /*glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);*/
-    // Initialize robot position
-    float groundLevel = CENTRAL_DISC_Y_POS + (CENTRAL_DISC_HEIGHT / 2.0f);
-    g_robot.posY = groundLevel + ROBOT_WHEEL_RADIUS;
-    g_robot.posX = 1.0f;
-    g_robot.posZ = 1.0f;
-    g_robot.angleY = 0.0f;
-    g_robot.wheelRotation = 0.0f;
+    initRobot();
 
     initParticles();
 }
