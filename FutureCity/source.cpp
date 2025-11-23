@@ -289,11 +289,11 @@ GLuint loadTexture(const char* filename) {
     int width = *(int*)&(header[0x12]);
     int height = *(int*)&(header[0x16]);
     unsigned int dataPos = *(unsigned int*)&(header[0x0A]);
-    int imageSize = width * height * 3; 
+    int imageSize = width * height * 3;
     if (dataPos == 0) dataPos = 54;
 
     int rowSizePadded = (width * 3 + 3) & (~3);
-    int padding = rowSizePadded - (width * 3); 
+    int padding = rowSizePadded - (width * 3);
     unsigned char* data = new unsigned char[imageSize];
 
     fseek(file, dataPos, SEEK_SET);
@@ -550,7 +550,7 @@ void drawFloatingDisc(float radius, float height, GLuint textureID) {
 
     glPopMatrix();
 
-    glDisable(GL_TEXTURE_2D); 
+    glDisable(GL_TEXTURE_2D);
     gluDeleteQuadric(quadric);
 }
 
@@ -579,10 +579,10 @@ void drawSkyDome() {
 
     glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glDisable(GL_LIGHTING);      
-    glDepthMask(GL_FALSE);        
+    glDisable(GL_LIGHTING);
+    glDepthMask(GL_FALSE);
 
-    glColor3f(1.0f, 1.0f, 1.0f);  
+    glColor3f(1.0f, 1.0f, 1.0f);
 
     glEnable(GL_TEXTURE_2D);
     GLuint currentSky = (g_currentSkyIndex == 0) ? g_texSkyDay : g_texSkyNight;
@@ -591,7 +591,7 @@ void drawSkyDome() {
     if (currentSky == 0) {
         glDisable(GL_TEXTURE_2D);
         if (g_currentSkyIndex == 0) glColor3f(0.5f, 0.7f, 1.0f);
-        else glColor3f(0.0f, 0.0f, 0.2f); 
+        else glColor3f(0.0f, 0.0f, 0.2f);
     }
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -607,7 +607,7 @@ void drawSkyDome() {
         gluDeleteQuadric(quad);
     }
 
-    glPopAttrib(); 
+    glPopAttrib();
     glPopMatrix();
 }
 
@@ -629,7 +629,7 @@ void drawSkyDome() {
 void generateFractalTreeGrammar() {
     std::string axiom = "F"; // 初始公理：一根树干
     // 重写规则：将每个 'F' 替换为更复杂的结构
-    std::string rule = "F[+F&F][-F^F](/F\\F)";
+    std::string rule = "F[+F&F][-F^F][/F\F]";
 
     std::string currentString = axiom;
 
@@ -748,7 +748,7 @@ void drawFractalTree() {
             break;
         }
     }
-    resetMaterial(); 
+    resetMaterial();
 }
 // Draw an icosahedron-based bush
 void drawBush() {
@@ -853,7 +853,7 @@ void drawGardenScene() {
 void drawStonePath(float centerX, float centerZ, float radius, float startAngleDeg, float endAngleDeg, float stoneRotationDeg) {
 
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, g_texGroundSurround); 
+    glBindTexture(GL_TEXTURE_2D, g_texGroundSurround);
 
     if (g_texGroundSurround != 0) glColor3f(1.0f, 1.0f, 1.0f);
     else {
@@ -865,7 +865,7 @@ void drawStonePath(float centerX, float centerZ, float radius, float startAngleD
     float endRad = endAngleDeg * M_PI / 180.0f;
     float totalAngleRad = fabs(endRad - startRad);
     float arcLength = totalAngleRad * radius;
-    float stepUnit = STONE_WIDTH + GAP; 
+    float stepUnit = STONE_WIDTH + GAP;
     int numStones = (int)(arcLength / stepUnit);
 
     if (numStones <= 0) numStones = 1;
@@ -880,12 +880,12 @@ void drawStonePath(float centerX, float centerZ, float radius, float startAngleD
         float limitSq = limitRadius * limitRadius;
 
         if (distSq > limitSq) {
-            continue; 
+            continue;
         }
 
         glPushMatrix();
         {
-            glTranslatef(x, 0.02f, z); 
+            glTranslatef(x, 0.02f, z);
             glRotatef(stoneRotationDeg, 0.0f, 1.0f, 0.0f);
 
             float w = STONE_WIDTH / 2.0f;
@@ -1034,7 +1034,7 @@ void drawBuilding(int type) {
     GLfloat windowEmission[] = { r, g, b, 1.0f };
 
     switch (type) {
-    case 0: 
+    case 0:
         bWidth = 3.5f; bHeight = 7.0f; floors = 12;
         break;
     case 1:
@@ -1043,10 +1043,10 @@ void drawBuilding(int type) {
     case 2:
         bWidth = 3.7f; bHeight = 6.8f; floors = 6;
         break;
-    case 3: 
+    case 3:
         bWidth = 3.2f; bHeight = 10.5f; floors = 8;
         break;
-    case 4: 
+    case 4:
         bWidth = 3.8f; bHeight = 6.5f; floors = 5;
         break;
     default:
@@ -1061,10 +1061,10 @@ void drawBuilding(int type) {
     glPopMatrix();
 
     setGlowingMaterial(windowEmission);
-    float depthOffset = bWidth * 0.505f; 
+    float depthOffset = bWidth * 0.505f;
 
     switch (type) {
-    case 0: 
+    case 0:
     {
         float floorH = bHeight / floors;
         for (int i = 0; i < floors; ++i) {
@@ -1080,7 +1080,7 @@ void drawBuilding(int type) {
     }
     break;
 
-    case 1: 
+    case 1:
     {
         float floorH = bHeight / floors;
         for (int i = 0; i < floors; ++i) {
@@ -1096,10 +1096,10 @@ void drawBuilding(int type) {
     }
     break;
 
-    case 2: 
+    case 2:
     {
         float floorH = bHeight / floors;
-        int winsPerFloor = 4; 
+        int winsPerFloor = 4;
         for (int i = 0; i < floors; ++i) {
             float y = i * floorH + floorH * 0.5f;
 
@@ -1150,15 +1150,15 @@ void drawBuilding(int type) {
     }
     break;
 
-    case 4: 
+    case 4:
     {
-        float lineThick = 0.25f; 
+        float lineThick = 0.25f;
         float halfW = bWidth / 2.0f;
         float halfH = bHeight / 2.0f;
 
         for (int s = 0; s < 4; ++s) {
             glPushMatrix();
-            glRotatef(90.0f * s, 0.0f, 1.0f, 0.0f); 
+            glRotatef(90.0f * s, 0.0f, 1.0f, 0.0f);
 
             glTranslatef(0.0f, halfH, depthOffset);
 
@@ -1183,7 +1183,7 @@ void drawBuilding(int type) {
             drawCube(lineThick, bHeight - 2 * lineThick, 0.05f);
             glPopMatrix();
 
-            glPopMatrix(); 
+            glPopMatrix();
         }
     }
     break;
@@ -1353,7 +1353,7 @@ void initPaths() {
     // Path 1
     g_skimmerPath1.push_back(vec3_create(20.0f, 8.0f, 0.0f));
     g_skimmerPath1.push_back(vec3_create(0.0f, 7.0f, 18.0f));
-    g_skimmerPath1.push_back(vec3_create(-5.0f, 4.0f, 4.0f)); 
+    g_skimmerPath1.push_back(vec3_create(-5.0f, 4.0f, 4.0f));
     g_skimmerPath1.push_back(vec3_create(-16.0f, 2.0f, 0.0f));
     g_skimmerPath1.push_back(vec3_create(-12.0f, 3.0f, -10.0f));
     g_skimmerPath1.push_back(vec3_create(0.0f, 9.0f, -12.0f));
@@ -1390,7 +1390,7 @@ void drawRobotChassis() {
 void drawRobotWheel() {
     glPushMatrix();
     glRotatef(90.0f, 0.0f, 0.0f, 1.0f);
-    drawFloatingDisc(ROBOT_WHEEL_RADIUS, ROBOT_WHEEL_WIDTH,0);
+    drawFloatingDisc(ROBOT_WHEEL_RADIUS, ROBOT_WHEEL_WIDTH, 0);
     glPopMatrix();
 }
 
@@ -1532,7 +1532,7 @@ void updateParticles(float dt) {
         GLdouble nozzlePos[3];
         calculateNozzleWorldPosition(armBaseAngle, armLowerAngle, armUpperAngle, nozzlePos);
 
-        int emitCount = 4; 
+        int emitCount = 4;
         int emitted = 0;
         for (int i = 0; i < MAX_PARTICLES && emitted < emitCount; i++) {
             if (!waterParticles[i].active) {
@@ -1786,7 +1786,7 @@ void display() {
         {
             glTranslatef(0.0f, CENTRAL_DISC_HEIGHT / 2.0f, 0.0f);
             drawGardenScene();
-            drawStonePath(6.0f, - 3.0f, 8.0f, 0.0f, 360.0f, 30.0f);
+            drawStonePath(6.0f, -3.0f, 8.0f, 0.0f, 360.0f, 30.0f);
         }
         glPopMatrix();
 
@@ -1939,8 +1939,8 @@ void keyboard(unsigned char key, int x, int y) {
     }
     // Robot light control
     else if (key == 'n' || key == 'N') {
-        g_envLightOn = !g_envLightOn; 
-        g_currentSkyIndex = (g_currentSkyIndex + 1) % 2; 
+        g_envLightOn = !g_envLightOn;
+        g_currentSkyIndex = (g_currentSkyIndex + 1) % 2;
     }
     else if (key == '+' || key == '=') {
         g_robotLightBrightness += 0.1f;
