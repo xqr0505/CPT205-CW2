@@ -82,7 +82,7 @@ const float BUILDING_HEIGHT = 6.5f;
 const float BUILDING_BASE = 3.5f;
 
 // Fractal Tree constants
-const int FRACTAL_TREE_ITERATIONS = 3;        // L-System 迭代次数 (建议 3-5)
+const int FRACTAL_TREE_ITERATIONS = 3;        // L-System 迭代次数
 const float TREE_INITIAL_HEIGHT = 1.5f;       // 初始树干高度
 const float TREE_INITIAL_RADIUS = 0.1f;       // 初始树干半径
 const float TREE_HEIGHT_DECAY = 0.7f;         // 每次迭代，高度衰减系数
@@ -628,7 +628,6 @@ void drawSkyDome() {
  */
 void generateFractalTreeGrammar() {
     std::string axiom = "F"; // 初始公理：一根树干
-    // 重写规则：将每个 'F' 替换为更复杂的结构
     std::string rule = "F[+F&F][-F^F][/F\F]";
 
     std::string currentString = axiom;
@@ -782,7 +781,7 @@ void drawBush() {
         const GLfloat* ptr2 = vertices[faces[i][1]];
         const GLfloat* ptr3 = vertices[faces[i][2]];
 
-        // --- 独立面贴图逻辑 ---
+        // 独立面贴图
 
         glNormal3fv(ptr1);
         if (i % 2 == 0) glTexCoord2f(0.5f, 1.0f); // 顶
@@ -1309,29 +1308,56 @@ void drawSkimmer() {
     resetMaterial();
 }
 // Catmull-Rom spline interpolation
-vec3 getCatmullRomPoint(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t) {
-    float t2 = t * t;
-    float t3 = t2 * t;
+//vec3 getCatmullRomPoint(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t) {
+//    float t2 = t * t;
+//    float t3 = t2 * t;
+//
+//    vec3 result;
+//    result.x = 0.5f * ((2.0f * p1.x) +
+//        (-p0.x + p2.x) * t +
+//        (2.0f * p0.x - 5.0f * p1.x + 4.0f * p2.x - p3.x) * t2 +
+//        (-p0.x + 3.0f * p1.x - 3.0f * p2.x + p3.x) * t3);
+//
+//    result.y = 0.5f * ((2.0f * p1.y) +
+//        (-p0.y + p2.y) * t +
+//        (2.0f * p0.y - 5.0f * p1.y + 4.0f * p2.y - p3.y) * t2 +
+//        (-p0.y + 3.0f * p1.y - 3.0f * p2.y + p3.y) * t3);
+//
+//    result.z = 0.5f * ((2.0f * p1.z) +
+//        (-p0.z + p2.z) * t +
+//        (2.0f * p0.z - 5.0f * p1.z + 4.0f * p2.z - p3.z) * t2 +
+//        (-p0.z + 3.0f * p1.z - 3.0f * p2.z + p3.z) * t3);
+//
+//    return result;
+//}
 
-    vec3 result;
-    result.x = 0.5f * ((2.0f * p1.x) +
-        (-p0.x + p2.x) * t +
-        (2.0f * p0.x - 5.0f * p1.x + 4.0f * p2.x - p3.x) * t2 +
-        (-p0.x + 3.0f * p1.x - 3.0f * p2.x + p3.x) * t3);
+vec3  getCatmullRomPoint(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, float alpha = 0.5f) {
+    auto tj = [alpha](float ti, vec3 pi, vec3 pj) {
+        float dx = pj.x - pi.x;
+        float dy = pj.y - pi.y;
+        float dz = pj.z - pi.z;
+        float dist = sqrt(dx * dx + dy * dy + dz * dz);
+        return ti + pow(dist, alpha);
+        };
 
-    result.y = 0.5f * ((2.0f * p1.y) +
-        (-p0.y + p2.y) * t +
-        (2.0f * p0.y - 5.0f * p1.y + 4.0f * p2.y - p3.y) * t2 +
-        (-p0.y + 3.0f * p1.y - 3.0f * p2.y + p3.y) * t3);
+    float t0 = 0.0f;
+    float t1 = tj(t0, p0, p1);
+    float t2 = tj(t1, p1, p2);
+    float t3 = tj(t2, p2, p3);
 
-    result.z = 0.5f * ((2.0f * p1.z) +
-        (-p0.z + p2.z) * t +
-        (2.0f * p0.z - 5.0f * p1.z + 4.0f * p2.z - p3.z) * t2 +
-        (-p0.z + 3.0f * p1.z - 3.0f * p2.z + p3.z) * t3);
+    // t in [0,1] -> mapped to [t1, t2]
+    float tt = t1 + (t2 - t1) * t;
 
-    return result;
+    vec3 A1 = vec3_add(vec3_scale(p0, (t1 - tt) / (t1 - t0)), vec3_scale(p1, (tt - t0) / (t1 - t0)));
+    vec3 A2 = vec3_add(vec3_scale(p1, (t2 - tt) / (t2 - t1)), vec3_scale(p2, (tt - t1) / (t2 - t1)));
+    vec3 A3 = vec3_add(vec3_scale(p2, (t3 - tt) / (t3 - t2)), vec3_scale(p3, (tt - t2) / (t3 - t2)));
+
+    vec3 B1 = vec3_add(vec3_scale(A1, (t2 - tt) / (t2 - t0)), vec3_scale(A2, (tt - t0) / (t2 - t0)));
+    vec3 B2 = vec3_add(vec3_scale(A2, (t3 - tt) / (t3 - t1)), vec3_scale(A3, (tt - t1) / (t3 - t1)));
+
+    vec3 C = vec3_add(vec3_scale(B1, (t2 - tt) / (t2 - t1)), vec3_scale(B2, (tt - t1) / (t2 - t1)));
+    return C;
 }
-
 // Get point on path with looping
 vec3 getPointOnPath(float progress, const std::vector<vec3>& path) {
     if (path.size() < 4) return vec3_create(0, 0, 0);
@@ -1344,7 +1370,9 @@ vec3 getPointOnPath(float progress, const std::vector<vec3>& path) {
     int p2_idx = (p1_idx + 1) % numPoints;
     int p3_idx = (p1_idx + 2) % numPoints;
 
-    return getCatmullRomPoint(path[p0_idx], path[p1_idx], path[p2_idx], path[p3_idx], t);
+    //return getCatmullRomPoint(path[p0_idx], path[p1_idx], path[p2_idx], path[p3_idx], t);
+
+    return getCatmullRomPoint(path[p0_idx], path[p1_idx], path[p2_idx], path[p3_idx], t, 0.5f);
 }
 
 // Initialize flight paths
@@ -1851,6 +1879,7 @@ void display() {
     glutSwapBuffers();
 }
 
+
 // ==========================================================
 // CALLBACK FUNCTIONS
 // ==========================================================
@@ -2086,14 +2115,14 @@ void initGL() {
 }
 
 void initTextures() {
-    g_texTreeBark = loadTexture("bark.bmp");
-    g_texTreeLeaf = loadTexture("leaf.bmp");
-    g_texGroundCenter = loadTexture("grass.bmp");
-    g_texGroundSurround = loadTexture("stone.bmp");
-    g_texBush = loadTexture("bush.bmp");
-    g_texSkyDay = loadTexture("day.bmp");
-    g_texSkyNight = loadTexture("night.bmp");
-    g_texControls = loadTexture("controls.bmp");
+    g_texTreeBark = loadTexture("texture/bark.bmp");
+    g_texTreeLeaf = loadTexture("texture/leaf.bmp");
+    g_texGroundCenter = loadTexture("texture/grass.bmp");
+    g_texGroundSurround = loadTexture("texture/stone.bmp");
+    g_texBush = loadTexture("texture/bush.bmp");
+    g_texSkyDay = loadTexture("texture/day.bmp");
+    g_texSkyNight = loadTexture("texture/night.bmp");
+    g_texControls = loadTexture("texture/controls.bmp");
 }
 
 int main(int argc, char** argv) {
