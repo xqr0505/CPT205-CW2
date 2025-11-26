@@ -1307,30 +1307,7 @@ void drawSkimmer() {
     // --- 4. Reset material state ---
     resetMaterial();
 }
-// Catmull-Rom spline interpolation
-//vec3 getCatmullRomPoint(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t) {
-//    float t2 = t * t;
-//    float t3 = t2 * t;
-//
-//    vec3 result;
-//    result.x = 0.5f * ((2.0f * p1.x) +
-//        (-p0.x + p2.x) * t +
-//        (2.0f * p0.x - 5.0f * p1.x + 4.0f * p2.x - p3.x) * t2 +
-//        (-p0.x + 3.0f * p1.x - 3.0f * p2.x + p3.x) * t3);
-//
-//    result.y = 0.5f * ((2.0f * p1.y) +
-//        (-p0.y + p2.y) * t +
-//        (2.0f * p0.y - 5.0f * p1.y + 4.0f * p2.y - p3.y) * t2 +
-//        (-p0.y + 3.0f * p1.y - 3.0f * p2.y + p3.y) * t3);
-//
-//    result.z = 0.5f * ((2.0f * p1.z) +
-//        (-p0.z + p2.z) * t +
-//        (2.0f * p0.z - 5.0f * p1.z + 4.0f * p2.z - p3.z) * t2 +
-//        (-p0.z + 3.0f * p1.z - 3.0f * p2.z + p3.z) * t3);
-//
-//    return result;
-//}
-
+// Centripetal Catmull-Rom
 vec3  getCatmullRomPoint(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, float alpha = 0.5f) {
     auto tj = [alpha](float ti, vec3 pi, vec3 pj) {
         float dx = pj.x - pi.x;
@@ -1344,8 +1321,6 @@ vec3  getCatmullRomPoint(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t, float alph
     float t1 = tj(t0, p0, p1);
     float t2 = tj(t1, p1, p2);
     float t3 = tj(t2, p2, p3);
-
-    // t in [0,1] -> mapped to [t1, t2]
     float tt = t1 + (t2 - t1) * t;
 
     vec3 A1 = vec3_add(vec3_scale(p0, (t1 - tt) / (t1 - t0)), vec3_scale(p1, (tt - t0) / (t1 - t0)));
@@ -1369,9 +1344,6 @@ vec3 getPointOnPath(float progress, const std::vector<vec3>& path) {
     int p0_idx = (p1_idx - 1 + numPoints) % numPoints;
     int p2_idx = (p1_idx + 1) % numPoints;
     int p3_idx = (p1_idx + 2) % numPoints;
-
-    //return getCatmullRomPoint(path[p0_idx], path[p1_idx], path[p2_idx], path[p3_idx], t);
-
     return getCatmullRomPoint(path[p0_idx], path[p1_idx], path[p2_idx], path[p3_idx], t, 0.5f);
 }
 
@@ -2081,7 +2053,7 @@ void onMenu(int item) {
     case MENU_COLOR_YELLO: g_currentGlowColorIndex = 4; break;
     }
 
-    glutPostRedisplay(); // Ë¢ÐÂ»­Ãæ
+    glutPostRedisplay(); 
 }
 
 void setupMenus() {
@@ -2093,10 +2065,10 @@ void setupMenus() {
     glutAddMenuEntry("Yellow", MENU_COLOR_YELLO);
 
     int mainMenu = glutCreateMenu(onMenu);
-    glutAddMenuEntry("Toggle Day/Night", MENU_TOGGLE_DAY_NIGHT);
-    glutAddMenuEntry("Toggle Flight Path", MENU_TOGGLE_PATH);
-    glutAddMenuEntry("Toggle Instructions", MENU_TOGGLE_INSTRUCTIONS);
-    glutAddSubMenu("Glow Color", subMenuColor);
+    glutAddMenuEntry("Toggle Day/Night (N)", MENU_TOGGLE_DAY_NIGHT);
+    glutAddMenuEntry("Toggle Flight Path (T)", MENU_TOGGLE_PATH);
+    glutAddMenuEntry("Toggle Instructions (I)", MENU_TOGGLE_INSTRUCTIONS);
+    glutAddSubMenu("Glow Color (K)", subMenuColor);
 
     glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
