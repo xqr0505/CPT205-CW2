@@ -42,13 +42,13 @@ const float SURROUND_DISC_DISTANCE = 12.0f;
 const float surround_heights[] = { 1.0f, -0.5f, 2.5f, -1.5f, 0.7f };
 
 // Robot constants
-const float ROBOT_CHASSIS_WIDTH = 0.8f;    // 机器人底盘宽度 (X轴)
-const float ROBOT_CHASSIS_HEIGHT = 0.4f;   // 机器人底盘高度 (Y轴)
-const float ROBOT_CHASSIS_DEPTH = 1.2f;    // 机器人底盘深度 (Z轴)
-const float ROBOT_WHEEL_RADIUS = 0.3f;     // 机器人车轮半径
-const float ROBOT_WHEEL_WIDTH = 0.15f;     // 机器人车轮宽度
-const float ROBOT_CAMERA_RADIUS = 0.25f;    // 摄像头头部半径
-const float ROBOT_CAMERA_Y_OFFSET = 0.3f;  // 摄像头距离底盘的高度
+const float ROBOT_CHASSIS_WIDTH = 0.8f;    
+const float ROBOT_CHASSIS_HEIGHT = 0.4f;   
+const float ROBOT_CHASSIS_DEPTH = 1.2f;   
+const float ROBOT_WHEEL_RADIUS = 0.3f;     
+const float ROBOT_WHEEL_WIDTH = 0.15f;    
+const float ROBOT_CAMERA_RADIUS = 0.25f;   
+const float ROBOT_CAMERA_Y_OFFSET = 0.3f;  
 
 const float ROBOT_MOVE_SPEED = 0.1f;
 const float ROBOT_ROTATE_SPEED = 3.0f;
@@ -82,19 +82,19 @@ const float BUILDING_HEIGHT = 6.5f;
 const float BUILDING_BASE = 3.5f;
 
 // Fractal Tree constants
-const int FRACTAL_TREE_ITERATIONS = 3;        // L-System 迭代次数
-const float TREE_INITIAL_HEIGHT = 1.5f;       // 初始树干高度
-const float TREE_INITIAL_RADIUS = 0.1f;       // 初始树干半径
-const float TREE_HEIGHT_DECAY = 0.7f;         // 每次迭代，高度衰减系数
-const float TREE_RADIUS_DECAY = 0.65f;        // 每次迭代，半径衰减系数
-const float TREE_LEAF_SIZE = 0.4f;            // 叶片大小
-const float TREE_BRANCH_ANGLE = 25.0f;        // 树枝分叉角度
+const int FRACTAL_TREE_ITERATIONS = 3;       
+const float TREE_INITIAL_HEIGHT = 1.5f;       
+const float TREE_INITIAL_RADIUS = 0.1f;       
+const float TREE_HEIGHT_DECAY = 0.7f;         
+const float TREE_RADIUS_DECAY = 0.65f;        
+const float TREE_LEAF_SIZE = 0.4f;            
+const float TREE_BRANCH_ANGLE = 25.0f;        
 
 // Stone path constants
-const float STONE_WIDTH = 1.3f;      // 石头宽度
-const float STONE_DEPTH = 0.6f;      // 石头深度
-const float STONE_HEIGHT = 0.05f;    // 石头厚度
-const float GAP = 0.2f;              // 石头之间的空隙距离
+const float STONE_WIDTH = 1.3f;      
+const float STONE_DEPTH = 0.6f;      
+const float STONE_HEIGHT = 0.05f;    
+const float GAP = 0.2f;             
 // ==========================================================
 // DATA STRUCTURES
 // ==========================================================
@@ -127,14 +127,14 @@ enum MenuOption {
 
 
 const float g_glowColors[5][3] = {
-    {0.5f, 0.8f, 1.0f},      // 蓝色 
-    {1.0f, 0.549f, 0.0f},    // 橘色 
-    {0.753f, 0.376f, 0.898f},// 紫色 
-    {0.0f, 1.0f, 0.502f},    // 绿色 
-    {1.0f, 1.0f, 0.0f}       // 黄色
+    {0.5f, 0.8f, 1.0f},      // blue
+    {1.0f, 0.549f, 0.0f},    // orange
+    {0.753f, 0.376f, 0.898f},// purple
+    {0.0f, 1.0f, 0.502f},    // green 
+    {1.0f, 1.0f, 0.0f}       // yellow
 };
 
-int g_currentGlowColorIndex = 0; // 当前选中的颜色索引
+int g_currentGlowColorIndex = 0; 
 const int TOTAL_COLORS = 5;
 
 
@@ -155,8 +155,8 @@ bool g_isRobotView = false;
 // Robot state
 Robot g_robot;
 //float g_robotCameraAngleY = 0.0f;
-bool g_robotLightOn = true;         // 车灯开关状态
-float g_robotLightBrightness = 1.0f;   // 车灯亮度
+bool g_robotLightOn = true;         
+float g_robotLightBrightness = 1.0f;   
 
 // Global lighting state
 bool g_envLightOn = true;
@@ -179,7 +179,7 @@ std::vector<vec3> g_skimmerPath2;
 Particle waterParticles[MAX_PARTICLES];
 
 // Fractal Tree state
-std::string g_fractalTreeGrammar; // 存储生成的L-System指令字符串
+std::string g_fractalTreeGrammar; 
 
 // Texture IDs
 GLuint g_texTreeBark = 0;
@@ -240,7 +240,6 @@ void drawWateringArm();
 void calculateNozzleWorldPosition(float baseRot, float lowerArmRot, float upperArmRot, GLdouble outPos[3]);
 
 // Building
-//void drawFuturisticBuilding(float baseSize, float height, int numWindowFloors);
 void drawBuilding(int type);
 
 // Skimmer aircraft
@@ -266,11 +265,12 @@ void drawInstructionPanel();
 // TEXTURE LOADING FUNCTIONS
 // ==========================================================
 
+// Load BMP texture from file
 GLuint loadTexture(const char* filename) {
     GLuint textureID = 0;
     FILE* file;
 
-
+    // Open file in binary mode
     if (fopen_s(&file, filename, "rb") != 0 || file == NULL) {
         std::cerr << "[Texture Error] Failed to open file: " << filename << std::endl;
         return 0;
@@ -315,7 +315,7 @@ GLuint loadTexture(const char* filename) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-
+    // Create Mipmaps for better distance rendering
     gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_BGR_EXT, GL_UNSIGNED_BYTE, data);
 
     delete[] data;
@@ -330,7 +330,6 @@ GLuint loadTexture(const char* filename) {
 
 /**
  * @brief Calculate the world position of the robot's headlight.
- * The light emanates from the camera head position.
  */
 void calculateRobotLightWorldPosition(GLdouble outPos[3]) {
     glMatrixMode(GL_MODELVIEW);
@@ -344,8 +343,6 @@ void calculateRobotLightWorldPosition(GLdouble outPos[3]) {
 
     // Navigate to camera head position
     glTranslatef(0.0f, ROBOT_CHASSIS_HEIGHT / 2.0f + ROBOT_CAMERA_Y_OFFSET, 0.0f);
-
-    // Move slightly forward from camera center
     glTranslatef(0.0f, 0.0f, ROBOT_CAMERA_RADIUS);
 
     GLdouble matrix[16];
@@ -359,22 +356,21 @@ void calculateRobotLightWorldPosition(GLdouble outPos[3]) {
 
 /**
  * @brief Calculate the direction vector of the robot's spotlight.
- * The light points in the direction the robot is facing.
+ * robot's forward direction
  */
 void calculateRobotLightWorldDirection(GLdouble outDir[3]) {
     float angleRad = g_robot.angleY * M_PI / 180.0f;
 
-    // Direction vector in world space (robot's forward direction)
     outDir[0] = sin(angleRad);
-    outDir[1] = 0.0f;  // Horizontal spotlight
+    outDir[1] = 0.0f;  
     outDir[2] = cos(angleRad);
 }
 
 /**
- * @brief Setup all lights in the scene (global light + robot spotlight).
+ * @brief Setup all lights.
  */
 void setupLights() {
-    // --- Setup LIGHT0 (Main global ambient light) ---
+    // --- Setup LIGHT0 (ambient light) ---
     if (g_envLightOn) {
         glEnable(GL_LIGHT0);
         GLfloat light0_ambient[] = { 0.15f, 0.15f, 0.2f, 1.0f };
@@ -394,36 +390,36 @@ void setupLights() {
     if (g_robotLightOn) {
         glEnable(GL_LIGHT1);
 
-        // Calculate robot's world position
+        // world position
         float robotGroundY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
         float angleRad = g_robot.angleY * M_PI / 180.0f;
 
-        // Light position: at the camera head, in world coordinates
+        // Light position: at the camera head
         GLfloat lightPosX = g_robot.posX + sin(angleRad) * ROBOT_CAMERA_RADIUS;
         GLfloat lightPosY = robotGroundY + (ROBOT_CHASSIS_HEIGHT / 2.0f) + ROBOT_CAMERA_Y_OFFSET;
         GLfloat lightPosZ = g_robot.posZ + cos(angleRad) * ROBOT_CAMERA_RADIUS;
 
         GLfloat light1_position[] = { lightPosX, lightPosY, lightPosZ, 1.0f };
 
-        // Light direction: pointing forward in the direction the robot faces
+        // Light direction: forward direction of the robot
         GLfloat light1_direction[] = {
             sin(angleRad),
-            0.0f,  // Horizontal spotlight
+            0.0f,  
             cos(angleRad)
         };
 
         // Set light properties
         glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
         glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, light1_direction);
-        glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 35.0f);      // Spotlight cone angle (degrees)
-        glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, 15.0f);    // Spotlight focus
+        glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 35.0f);      
+        glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, 15.0f);    
 
         // Set light attenuation
         glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, 0.5f);
         glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, 0.08f);
         glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, 0.01f);
 
-        // Calculate light color based on brightness
+        // light color
         GLfloat light1_diffuse[] = { 1.0f, 0.9f, 0.7f, 1.0f };
         light1_diffuse[0] *= g_robotLightBrightness;
         light1_diffuse[1] *= g_robotLightBrightness;
@@ -449,7 +445,7 @@ void setupLights() {
 // ==========================================================
 
 /**
- * @brief Set material properties for the robot's body and components based on the selected glow color index.
+ * @brief Set material properties
  */
 void setMaterial(const GLfloat* ambient, const GLfloat* diffuse, const GLfloat* specular, float shininess, const GLfloat* emission) {
     glDisable(GL_COLOR_MATERIAL);
@@ -461,7 +457,7 @@ void setMaterial(const GLfloat* ambient, const GLfloat* diffuse, const GLfloat* 
 }
 
 /**
- * @brief Set the material properties for the building frame (dark gray metallic).
+ * @brief  building material.
  */
 void setBuildingFrameMaterial() {
     GLfloat ambient[] = { 0.15f, 0.15f, 0.2f, 1.0f };
@@ -472,7 +468,7 @@ void setBuildingFrameMaterial() {
 }
 
 /**
- * @brief Set the glowing material properties for windows and rings.
+ * @brief glowing material.
  */
 void setGlowingMaterial(const GLfloat* emissionColor) {
     GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -480,7 +476,7 @@ void setGlowingMaterial(const GLfloat* emissionColor) {
 }
 
 /**
- * @brief Set material properties for the skimmer aircraft body.
+ * @brief material properties.
  */
 void setSkimmerBodyMaterial() {
     GLfloat ambient[] = { 0.1f, 0.1f, 0.15f, 1.0f };
@@ -491,7 +487,7 @@ void setSkimmerBodyMaterial() {
 }
 
 /**
- * @brief Set material properties for tree trunks.
+ * @brief tree trunks material.
  */
 void setTreeTrunkMaterial() {
     GLfloat ambient[] = { 0.4f, 0.25f, 0.15f, 1.0f };
@@ -502,7 +498,7 @@ void setTreeTrunkMaterial() {
 }
 
 /**
- * @brief Set material properties for tree leaves.
+ * @brief tree leaves material.
  */
 void setTreeLeafMaterial() {
     GLfloat ambient[] = { 0.1f, 0.3f, 0.1f, 1.0f };
@@ -528,13 +524,12 @@ void drawFloatingDisc(float radius, float height, GLuint textureID) {
     GLUquadric* quadric = gluNewQuadric();
     gluQuadricNormals(quadric, GLU_SMOOTH);
 
-    // --- 开启自动纹理坐标生成 ---
     gluQuadricTexture(quadric, GL_TRUE);
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, textureID);
 
-    // 如果纹理加载失败，使用白色混合
+    // set color if texture load error
     if (textureID == 0) glDisable(GL_TEXTURE_2D);
     else glColor3f(1.0f, 1.0f, 1.0f);
 
@@ -615,19 +610,19 @@ void drawSkyDome() {
 // GARDEN SCENE FUNCTIONS
 // ==========================================================
 /**
- * @brief 生成 L-System 分形树的指令字符串。
- * F: 向前画树干和叶子
- * [: 保存当前状态 (位置和朝向)
- * ]: 恢复上一个状态
- * +: 绕X轴正向旋转 (向上抬头)
- * -: 绕X轴负向旋转 (向下低头)
- * &: 绕Y轴正向旋转 (向左偏航)
- * ^: 绕Y轴负向旋转 (向右偏航)
- * /: 绕Z轴正向旋转 (向左翻滚)
- * \: 绕Z轴负向旋转 (向右翻滚)
+ * @brief Generates the instruction string for an L-System fractal tree.
+ * F: Move forward and draw trunk/leaves
+ * [: Save current state (position and orientation)
+ * ]: Restore previous state
+ * +: Rotate positively around X-axis (pitch up)
+ * -: Rotate negatively around X-axis (pitch down)
+ * &: Rotate positively around Y-axis (yaw left)
+ * ^: Rotate negatively around Y-axis (yaw right)
+ * /: Rotate positively around Z-axis (roll left)
+ * \: Rotate negatively around Z-axis (roll right)
  */
 void generateFractalTreeGrammar() {
-    std::string axiom = "F"; // 初始公理：一根树干
+    std::string axiom = "F"; // axiom: trunk
     std::string rule = "F[+F&F][-F^F][/F\F]";
 
     std::string currentString = axiom;
@@ -636,10 +631,10 @@ void generateFractalTreeGrammar() {
         std::string nextString = "";
         for (char c : currentString) {
             if (c == 'F') {
-                nextString += rule; // 应用规则
+                nextString += rule; // apply rules
             }
             else {
-                nextString += c; // 保留其他字符 ([, ], +, -, etc.)
+                nextString += c; 
             }
         }
         currentString = nextString;
@@ -649,8 +644,8 @@ void generateFractalTreeGrammar() {
 }
 
 /**
- * @brief 绘制树叶
- * @param size 叶子的大小
+ * @brief Renders a single tree leaf
+ * @param size The size of the leaf
  */
 void drawTreeLeaf(float size) {
     glEnable(GL_TEXTURE_2D);
@@ -662,93 +657,96 @@ void drawTreeLeaf(float size) {
     glBegin(GL_QUADS);
     glNormal3f(0.0f, 0.0f, 1.0f);
 
-    // 映射纹理坐标 (0,0) 到 (1,1)
-    glTexCoord2f(0.5f, 0.0f); glVertex3f(0, 0, 0);             // 底部中心
-    glTexCoord2f(1.0f, 0.5f); glVertex3f(size / 2.0f, size, 0); // 右侧
-    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, size * 2.0f, 0);    // 顶部
-    glTexCoord2f(0.0f, 0.5f); glVertex3f(-size / 2.0f, size, 0);// 左侧
+    glTexCoord2f(0.5f, 0.0f); glVertex3f(0, 0, 0);             
+    glTexCoord2f(1.0f, 0.5f); glVertex3f(size / 2.0f, size, 0); 
+    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, size * 2.0f, 0);   
+    glTexCoord2f(0.0f, 0.5f); glVertex3f(-size / 2.0f, size, 0);
     glEnd();
 
     glDisable(GL_TEXTURE_2D);
 }
 
-// 绘制一段树干 (一个圆柱体)
+/**
+ * @brief Renders a single tree branch segment (cylinder)
+ * @param radius Base 
+ * @param height
+ */
 void drawTreeBranch(float radius, float height) {
     glPushMatrix();
+    // Rotate to align cylinder along Y-axis
     glRotatef(-90, 1.0f, 0.0f, 0.0f);
 
     GLUquadric* quad = gluNewQuadric();
-    gluQuadricTexture(quad, GL_TRUE); // 开启纹理
+    gluQuadricTexture(quad, GL_TRUE); 
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, g_texTreeBark);
 
-    if (g_texTreeBark != 0) glColor3f(1.0f, 1.0f, 1.0f); // 有贴图时用白色
-    else glDisable(GL_TEXTURE_2D); // 没贴图用原来的材质颜色
+    if (g_texTreeBark != 0) glColor3f(1.0f, 1.0f, 1.0f);
+    else glDisable(GL_TEXTURE_2D);
 
     gluCylinder(quad, radius, radius * 0.8f, height, 8, 1);
-
     glDisable(GL_TEXTURE_2D);
     gluDeleteQuadric(quad);
     glPopMatrix();
 }
+
 /**
- * @brief 根据生成的 L-System 字符串递归绘制分形树。
+ * @brief Recursively renders a fractal tree based on L-System generated string
  */
 void drawFractalTree() {
     if (g_fractalTreeGrammar.empty()) return;
+    
+    // Fixed seed for consistent random leaf orientations
     srand(0);
-    // 初始化绘制参数
+    
     float currentHeight = TREE_INITIAL_HEIGHT;
     float currentRadius = TREE_INITIAL_RADIUS;
 
-    // 遍历指令字符串
+    // Process each character in the grammar string
     for (char c : g_fractalTreeGrammar) {
         switch (c) {
-        case 'F': // 向前画树干，并在末端画一片叶子
+        case 'F': // Draw forward and add leaf at end
             setTreeTrunkMaterial();
             drawTreeBranch(currentRadius, currentHeight);
-            // 将坐标系移动到树枝顶端
             glTranslatef(0.0f, currentHeight, 0.0f);
 
-            // 在新树枝的末端画一片叶子
             setTreeLeafMaterial();
-            // 随机旋转一下叶子，让它看起来更自然
             glPushMatrix();
-            glRotatef(rand() % 360, 0.0f, 1.0f, 0.0f);
-            glRotatef((rand() % 40) - 20, 1.0f, 0.0f, 0.0f);
+            glRotatef(rand() % 360, 0.0f, 1.0f, 0.0f);        
+            glRotatef((rand() % 40) - 20, 1.0f, 0.0f, 0.0f);  
             drawTreeLeaf(TREE_LEAF_SIZE);
             glPopMatrix();
             break;
 
-        case '[': // 保存当前状态
+        case '[': // Push current state (start branch)
             glPushMatrix();
-            // 每次分叉，后续的树枝会变短变细
             currentHeight *= TREE_HEIGHT_DECAY;
             currentRadius *= TREE_RADIUS_DECAY;
             break;
 
-        case ']': // 恢复上一个状态
+        case ']': // Pop state (return to parent branch)
             glPopMatrix();
-            // 恢复之前的尺寸
             currentHeight /= TREE_HEIGHT_DECAY;
             currentRadius /= TREE_RADIUS_DECAY;
             break;
 
-            // --- 旋转指令 ---
-        case '+': glRotatef(TREE_BRANCH_ANGLE, 1.0f, 0.0f, 0.0f); break;
-        case '-': glRotatef(-TREE_BRANCH_ANGLE, 1.0f, 0.0f, 0.0f); break;
-        case '&': glRotatef(TREE_BRANCH_ANGLE, 0.0f, 1.0f, 0.0f); break;
-        case '^': glRotatef(-TREE_BRANCH_ANGLE, 0.0f, 1.0f, 0.0f); break;
-        case '/': glRotatef(TREE_BRANCH_ANGLE, 0.0f, 0.0f, 1.0f); break;
-        case '\\': glRotatef(-TREE_BRANCH_ANGLE, 0.0f, 0.0f, 1.0f); break;
+            // --- Rotation commands ---
+        case '+': glRotatef(TREE_BRANCH_ANGLE, 1.0f, 0.0f, 0.0f); break;  // Pitch up
+        case '-': glRotatef(-TREE_BRANCH_ANGLE, 1.0f, 0.0f, 0.0f); break; // Pitch down
+        case '&': glRotatef(TREE_BRANCH_ANGLE, 0.0f, 1.0f, 0.0f); break;  // Yaw left
+        case '^': glRotatef(-TREE_BRANCH_ANGLE, 0.0f, 1.0f, 0.0f); break; // Yaw right
+        case '/': glRotatef(TREE_BRANCH_ANGLE, 0.0f, 0.0f, 1.0f); break;  // Roll clockwise
+        case '\\': glRotatef(-TREE_BRANCH_ANGLE, 0.0f, 0.0f, 1.0f); break;// Roll counter-clockwise
+            
         default:
-            break;
+            break; 
         }
     }
     resetMaterial();
 }
-// Draw an icosahedron-based bush
+
+// Draw bush
 void drawBush() {
     const float t = (1.0f + sqrt(5.0f)) / 2.0f;
     const float r = 1.0f;
@@ -769,7 +767,9 @@ void drawBush() {
         { 4, 9, 5 },{ 2, 4, 11 },{ 6, 2, 10 },{ 8, 6, 7 },{ 9, 8, 1 }
     };
 
+    
     glEnable(GL_TEXTURE_2D);
+	// Bind bush texture
     glBindTexture(GL_TEXTURE_2D, g_texBush);
 
     if (g_texBush != 0) glColor3f(1.0f, 1.0f, 1.0f);
@@ -780,22 +780,19 @@ void drawBush() {
         const GLfloat* ptr1 = vertices[faces[i][0]];
         const GLfloat* ptr2 = vertices[faces[i][1]];
         const GLfloat* ptr3 = vertices[faces[i][2]];
-
-        // 独立面贴图
-
         glNormal3fv(ptr1);
-        if (i % 2 == 0) glTexCoord2f(0.5f, 1.0f); // 顶
-        else            glTexCoord2f(0.0f, 0.0f); // 左下
+        if (i % 2 == 0) glTexCoord2f(0.5f, 1.0f); 
+        else            glTexCoord2f(0.0f, 0.0f); 
         glVertex3fv(ptr1);
 
         glNormal3fv(ptr2);
-        if (i % 2 == 0) glTexCoord2f(0.0f, 0.0f); // 左下
-        else            glTexCoord2f(1.0f, 0.0f); // 右下
+        if (i % 2 == 0) glTexCoord2f(0.0f, 0.0f); 
+        else            glTexCoord2f(1.0f, 0.0f); 
         glVertex3fv(ptr2);
 
         glNormal3fv(ptr3);
-        if (i % 2 == 0) glTexCoord2f(1.0f, 0.0f); // 右下
-        else            glTexCoord2f(0.5f, 1.0f); // 顶
+        if (i % 2 == 0) glTexCoord2f(1.0f, 0.0f); 
+        else            glTexCoord2f(0.5f, 1.0f); 
         glVertex3fv(ptr3);
     }
     glEnd();
@@ -848,6 +845,9 @@ void drawGardenScene() {
 
 
 
+/**
+ * draw the stone path
+ */
 void drawStonePath(float centerX, float centerZ, float radius, float startAngleDeg, float endAngleDeg, float stoneRotationDeg) {
 
     glEnable(GL_TEXTURE_2D);
@@ -1020,11 +1020,11 @@ void calculateNozzleWorldPosition(float baseRot, float lowerArmRot, float upperA
 // ==========================================================
 
 /**
- * @brief 根据索引绘制 5 种建筑
+ * @brief draw a building of specified type
  */
 void drawBuilding(int type) {
-    float bWidth, bHeight; // 尺寸
-    int floors;            // 层数
+    float bWidth, bHeight; 
+    int floors;           
     GLfloat r = g_glowColors[g_currentGlowColorIndex][0];
     GLfloat g = g_glowColors[g_currentGlowColorIndex][1];
     GLfloat b = g_glowColors[g_currentGlowColorIndex][2];
@@ -1243,7 +1243,7 @@ void drawWing() {
     glEnd();
 }
 
-// Draw glowing decorative ring on fuselage
+// Draw glowing decorative ring
 void drawGlowingRing(float z_position, float thickness) {
     const int SEGMENTS = 24;
     const float RING_OFFSET = 0.03f;
@@ -1268,14 +1268,14 @@ void drawGlowingRing(float z_position, float thickness) {
 
 // Draw complete skimmer aircraft
 void drawSkimmer() {
-    // --- 1. Fuselage ---
+    //-- Fuselage --
     setSkimmerBodyMaterial();
     glPushMatrix();
     glScalef(SKIMMER_WIDTH, SKIMMER_WIDTH, SKIMMER_LENGTH);
     glutSolidSphere(1.0, 16, 12);
     glPopMatrix();
 
-    // --- 2. Wings ---
+    //-- Wings --
     // Right wing
     glPushMatrix();
     glTranslatef(SKIMMER_WIDTH * 0.5f, 0.0f, 0.0f);
@@ -1293,7 +1293,7 @@ void drawSkimmer() {
     glFrontFace(GL_CCW);
     glPopMatrix();
 
-    // --- 3. Glowing Rings ---
+    //-- Glowing Rings ---
     GLfloat r = g_glowColors[g_currentGlowColorIndex][0];
     GLfloat g = g_glowColors[g_currentGlowColorIndex][1];
     GLfloat b = g_glowColors[g_currentGlowColorIndex][2];
@@ -1304,7 +1304,7 @@ void drawSkimmer() {
     drawGlowingRing(SKIMMER_LENGTH * 0.3f, 0.2f);
     drawGlowingRing(SKIMMER_LENGTH * -0.3f, 0.2f);
 
-    // --- 4. Reset material state ---
+    // Reset material state
     resetMaterial();
 }
 // Centripetal Catmull-Rom
@@ -1366,6 +1366,47 @@ void initPaths() {
 
 }
 
+// Draw skimmer flight path visualization
+void drawFlightPath(const std::vector<vec3>& path, vec3 color) {
+    if (path.empty()) return;
+
+    glDisable(GL_LIGHTING);
+    glLineWidth(2.0f);
+    glColor3f(color.x, color.y, color.z);
+
+    glBegin(GL_LINE_STRIP);
+    for (float t = 0.0f; t < path.size(); t += 0.1f) {
+        vec3 point = getPointOnPath(t, path);
+        glVertex3f(point.x, point.y, point.z);
+    }
+    glEnd();
+
+    glEnable(GL_LIGHTING);
+    glLineWidth(1.0f);
+}
+
+// Draw animated skimmer
+void drawAnimatedSkimmer(float progress, const std::vector<vec3>& path) {
+    vec3 currentPos = getPointOnPath(progress, path);
+    float next_progress = progress + 0.01f;
+    if (next_progress >= path.size()) {
+        next_progress -= path.size();
+    }
+    vec3 nextPos = getPointOnPath(next_progress, path);
+    vec3 direction = vec3_normalize(vec3_sub(nextPos, currentPos));
+
+    glPushMatrix();
+    {
+        glTranslatef(currentPos.x, currentPos.y, currentPos.z);
+        float yaw = atan2(direction.x, direction.z) * 180.0 / M_PI;
+        float pitch = asin(-direction.y) * 180.0 / M_PI;
+        glRotatef(yaw, 0.0f, 1.0f, 0.0f);
+        glRotatef(pitch, 1.0f, 0.0f, 0.0f);
+        drawSkimmer();
+    }
+    glPopMatrix();
+}
+
 // ==========================================================
 // ROBOT FUNCTIONS
 // ==========================================================
@@ -1376,16 +1417,12 @@ bool checkRobotBoundary(float x, float z) {
     return distanceFromCenter < CENTRAL_DISC_RADIUS - (ROBOT_CHASSIS_WIDTH / 2.0f);
 }
 
-/**
- * @brief 绘制机器人的底盘。
- */
+
 void drawRobotChassis() {
     drawCube(ROBOT_CHASSIS_WIDTH, ROBOT_CHASSIS_HEIGHT, ROBOT_CHASSIS_DEPTH);
 }
 
-/**
- * @brief 绘制机器人的一个车轮。
- */
+
 void drawRobotWheel() {
     glPushMatrix();
     glRotatef(90.0f, 0.0f, 0.0f, 1.0f);
@@ -1393,9 +1430,7 @@ void drawRobotWheel() {
     glPopMatrix();
 }
 
-/**
- * @brief 绘制机器人的摄像头头部。
- */
+
 void drawRobotCameraHead() {
     // --- Square camera body ---
     float cubeSize = ROBOT_CAMERA_RADIUS * 2.0f;
@@ -1408,9 +1443,8 @@ void drawRobotCameraHead() {
 
         // Apply glow material based on light brightness
         if (g_robotLightOn && g_robotLightBrightness > 0.0f) {
-            // Interpolate between dim and bright colors
-            float startR = 0.5f, startG = 0.5f, startB = 0.45f;  // Dim color
-            float endR = 1.0f, endG = 0.9f, endB = 0.7f;         // Bright color
+            float startR = 0.5f, startG = 0.5f, startB = 0.45f;  
+            float endR = 1.0f, endG = 0.9f, endB = 0.7f;         
 
             // Linear interpolation based on brightness
             float r = startR + g_robotLightBrightness * (endR - startR);
@@ -1435,80 +1469,80 @@ void drawRobotCameraHead() {
 }
 
 /**
- * @brief 绘制一个机器人。
+ * @brief Renders the complete robot
  */
 void drawRobot() {
-
     glPushMatrix();
     {
-
         glRotatef(g_robot.angleY, 0.0f, 1.0f, 0.0f);
+
+        // Draw chassis body
         setSkimmerBodyMaterial();
         drawRobotChassis();
-
-
-        // 前右轮
+        // --- Draw four wheels ---
+        // Front right wheel
         glPushMatrix();
         glTranslatef(ROBOT_CHASSIS_WIDTH / 2.0f + ROBOT_WHEEL_WIDTH / 2.0f, 0.0f, ROBOT_CHASSIS_DEPTH / 2.0f - ROBOT_WHEEL_RADIUS);
         glRotatef(g_robot.wheelRotation, 1.0f, 0.0f, 0.0f);
         drawRobotWheel();
         glPopMatrix();
-        // 前左轮
+
+        // Front left wheel
         glPushMatrix();
         glTranslatef(-(ROBOT_CHASSIS_WIDTH / 2.0f + ROBOT_WHEEL_WIDTH / 2.0f), 0.0f, ROBOT_CHASSIS_DEPTH / 2.0f - ROBOT_WHEEL_RADIUS);
         glRotatef(g_robot.wheelRotation, 1.0f, 0.0f, 0.0f);
         drawRobotWheel();
         glPopMatrix();
-        // 后右轮
+
+        // Rear right wheel
         glPushMatrix();
         glTranslatef(ROBOT_CHASSIS_WIDTH / 2.0f + ROBOT_WHEEL_WIDTH / 2.0f, 0.0f, -(ROBOT_CHASSIS_DEPTH / 2.0f - ROBOT_WHEEL_RADIUS));
         glRotatef(g_robot.wheelRotation, 1.0f, 0.0f, 0.0f);
         drawRobotWheel();
         glPopMatrix();
-        // 后左轮
+
+        // Rear left wheel
         glPushMatrix();
         glTranslatef(-(ROBOT_CHASSIS_WIDTH / 2.0f + ROBOT_WHEEL_WIDTH / 2.0f), 0.0f, -(ROBOT_CHASSIS_DEPTH / 2.0f - ROBOT_WHEEL_RADIUS));
         glRotatef(g_robot.wheelRotation, 1.0f, 0.0f, 0.0f);
         drawRobotWheel();
         glPopMatrix();
-
+        // --- Draw camera head ---
         glPushMatrix();
         glTranslatef(0.0f, ROBOT_CHASSIS_HEIGHT / 2.0f + ROBOT_CAMERA_Y_OFFSET, 0.0f);
         glRotatef(0.0f, 0.0f, 1.0f, 0.0f);
         drawRobotCameraHead();
         glPopMatrix();
-
+        // --- Draw glowing decorative stripes ---
         float r = g_glowColors[g_currentGlowColorIndex][0];
         float g = g_glowColors[g_currentGlowColorIndex][1];
         float b = g_glowColors[g_currentGlowColorIndex][2];
         GLfloat stripeEmission[] = { r, g, b, 1.0f };
         setGlowingMaterial(stripeEmission);
-
         const float stripe_thickness = 0.05f;
         const float stripe_offset = 0.01f;
-
-        // 前后条带
+        // Front and back stripes
         glPushMatrix();
         glTranslatef(0.0f, 0.0f, ROBOT_CHASSIS_DEPTH / 2.0f + stripe_offset);
         drawCube(ROBOT_CHASSIS_WIDTH, ROBOT_CHASSIS_HEIGHT * 0.5f, stripe_thickness);
         glPopMatrix();
+
         glPushMatrix();
         glTranslatef(0.0f, 0.0f, -(ROBOT_CHASSIS_DEPTH / 2.0f + stripe_offset));
         drawCube(ROBOT_CHASSIS_WIDTH, ROBOT_CHASSIS_HEIGHT * 0.5f, stripe_thickness);
         glPopMatrix();
-
-        // 左右条带
+        // Left and right stripes
         glPushMatrix();
         glTranslatef(ROBOT_CHASSIS_WIDTH / 2.0f + stripe_offset, 0.0f, 0.0f);
         drawCube(stripe_thickness, ROBOT_CHASSIS_HEIGHT * 0.5f, ROBOT_CHASSIS_DEPTH);
         glPopMatrix();
+
         glPushMatrix();
         glTranslatef(-(ROBOT_CHASSIS_WIDTH / 2.0f + stripe_offset), 0.0f, 0.0f);
         drawCube(stripe_thickness, ROBOT_CHASSIS_HEIGHT * 0.5f, ROBOT_CHASSIS_DEPTH);
         glPopMatrix();
     }
     glPopMatrix();
-
     resetMaterial();
 }
 
@@ -1638,7 +1672,6 @@ void setupCamera() {
 
 /**
  * @brief Draw instruction panel as 2D overlay in screen center
- * The panel is a 4:3 aspect ratio rectangle with controls.bmp texture
  */
 void drawInstructionPanel() {
     // Save current matrices and attributes
@@ -1651,16 +1684,16 @@ void drawInstructionPanel() {
     glPushMatrix();
     glLoadIdentity();
 
-    // Disable depth test and lighting for 2D overlay
+    // Disable depth test and lighting
     glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
 
-    // Enable blending for semi-transparent background
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // Calculate panel size (4:3 aspect ratio, covering about 80% of screen height)
+    // Calculate panel size
     float panelHeight = g_windowHeight * 0.8f;
     float panelWidth = panelHeight * (4.0f / 3.0f);
 
@@ -1668,7 +1701,7 @@ void drawInstructionPanel() {
     float panelX = (g_windowWidth - panelWidth) / 2.0f;
     float panelY = (g_windowHeight - panelHeight) / 2.0f;
 
-    // Draw semi-transparent dark background
+
     glColor4f(0.0f, 0.0f, 0.0f, 0.7f);
     glBegin(GL_QUADS);
     glVertex2f(panelX - 10, panelY - 10);
@@ -1685,7 +1718,6 @@ void drawInstructionPanel() {
         glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
     else {
-        // Fallback: white rectangle if texture not loaded
         glDisable(GL_TEXTURE_2D);
         glColor4f(0.9f, 0.9f, 0.9f, 0.9f);
     }
@@ -1708,7 +1740,6 @@ void drawInstructionPanel() {
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
 
-    // Restore modelview mode for subsequent rendering
     glMatrixMode(GL_MODELVIEW);
 }
 
@@ -1716,48 +1747,7 @@ void drawInstructionPanel() {
 // SCENE RENDERING
 // ==========================================================
 
-// Draw skimmer flight path visualization
-void drawFlightPath(const std::vector<vec3>& path, vec3 color) {
-    if (path.empty()) return;
 
-    glDisable(GL_LIGHTING);
-    glLineWidth(2.0f);
-    glColor3f(color.x, color.y, color.z);
-
-    glBegin(GL_LINE_STRIP);
-    for (float t = 0.0f; t < path.size(); t += 0.1f) {
-        vec3 point = getPointOnPath(t, path);
-        glVertex3f(point.x, point.y, point.z);
-    }
-    glEnd();
-
-    glEnable(GL_LIGHTING);
-    glLineWidth(1.0f);
-}
-
-// Draw animated skimmer with orientation
-void drawAnimatedSkimmer(float progress, const std::vector<vec3>& path) {
-    vec3 currentPos = getPointOnPath(progress, path);
-    float next_progress = progress + 0.01f;
-    if (next_progress >= path.size()) {
-        next_progress -= path.size();
-    }
-    vec3 nextPos = getPointOnPath(next_progress, path);
-    vec3 direction = vec3_normalize(vec3_sub(nextPos, currentPos));
-
-    glPushMatrix();
-    {
-        glTranslatef(currentPos.x, currentPos.y, currentPos.z);
-        float yaw = atan2(direction.x, direction.z) * 180.0 / M_PI;
-        float pitch = asin(-direction.y) * 180.0 / M_PI;
-        glRotatef(yaw, 0.0f, 1.0f, 0.0f);
-        glRotatef(pitch, 1.0f, 0.0f, 0.0f);
-        drawSkimmer();
-    }
-    glPopMatrix();
-}
-
-// Main display function
 void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
@@ -1768,7 +1758,7 @@ void display() {
     setupLights();
 
     drawSkyDome();
-    // Central disc and its contents (hierarchical modeling)
+    // Central disc and its contents
     glPushMatrix();
     {
         glTranslatef(0.0f, CENTRAL_DISC_Y_POS, 0.0f);
@@ -1779,7 +1769,7 @@ void display() {
         drawFloatingDisc(CENTRAL_DISC_RADIUS, CENTRAL_DISC_HEIGHT, g_texGroundCenter);
         glPopMatrix();
 
-        // Robot on central disc
+        // Robot
         glPushMatrix();
         {
             float robotGroundY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
@@ -1788,7 +1778,7 @@ void display() {
         }
         glPopMatrix();
 
-        // Garden scene on disc surface
+        // Garden scene
         glPushMatrix();
         {
             glTranslatef(0.0f, CENTRAL_DISC_HEIGHT / 2.0f, 0.0f);
@@ -1797,7 +1787,7 @@ void display() {
         }
         glPopMatrix();
 
-        // Robotic arm on disc surface
+        // Robotic arm
         glPushMatrix();
         {
             glTranslatef(0.0f, CENTRAL_DISC_HEIGHT / 2.0f, 0.0f);
@@ -2032,7 +2022,6 @@ void idle() {
 void onMenu(int item) {
     switch (item) {
     case MENU_TOGGLE_DAY_NIGHT:
-        // 切换灯光和天空盒
         g_envLightOn = !g_envLightOn;
         g_currentSkyIndex = (g_currentSkyIndex + 1) % 2;
         break;
@@ -2045,7 +2034,6 @@ void onMenu(int item) {
         g_showInstructionPanel = !g_showInstructionPanel;
         break;
 
-        // 颜色选择
     case MENU_COLOR_CYAN:   g_currentGlowColorIndex = 0; break;
     case MENU_COLOR_ORANGE:    g_currentGlowColorIndex = 1; break;
     case MENU_COLOR_PURPLE:  g_currentGlowColorIndex = 2; break;
