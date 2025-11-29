@@ -270,36 +270,63 @@ GLuint loadTexture(const char* filename) {
     GLuint textureID = 0;
     FILE* file;
 
-    // Open file in binary mode
     if (fopen_s(&file, filename, "rb") != 0 || file == NULL) {
         std::cerr << "[Texture Error] Failed to open file: " << filename << std::endl;
         return 0;
     }
+
     unsigned char header[54];
     if (fread(header, 1, 54, file) != 54) {
         std::cerr << "[Texture Error] Invalid BMP file: " << filename << std::endl;
         fclose(file);
         return 0;
     }
+
     if (header[0] != 'B' || header[1] != 'M') {
         std::cerr << "[Texture Error] Not a BMP file: " << filename << std::endl;
         fclose(file);
         return 0;
     }
+
+    // Bit Count
+    unsigned short bitCount = *(unsigned short*)&(header[0x1C]);
+
     int width = *(int*)&(header[0x12]);
     int height = *(int*)&(header[0x16]);
     unsigned int dataPos = *(unsigned int*)&(header[0x0A]);
-    int imageSize = width * height * 3;
-    if (dataPos == 0) dataPos = 54;
+    if (dataPos == 0) dataPos = 54; 
 
-    int rowSizePadded = (width * 3 + 3) & (~3);
-    int padding = rowSizePadded - (width * 3);
+    //3 for RGB, 4 for RGBA
+    int bytesPerPixel = 0;
+    GLenum format; 
+
+    if (bitCount == 24) {
+        bytesPerPixel = 3;
+        format = GL_BGR_EXT; 
+    }
+    else if (bitCount == 32) {
+        bytesPerPixel = 4;
+        format = GL_BGRA_EXT;
+    }
+    else {
+        std::cerr << "[Texture Error] Unsupported bit depth: " << bitCount << " (Only 24 or 32 supported)" << std::endl;
+        fclose(file);
+        return 0;
+    }
+
+    int imageSize = width * height * bytesPerPixel;
+    int rowSizePadded = (width * bytesPerPixel + 3) & (~3);
+    int padding = rowSizePadded - (width * bytesPerPixel);
+
     unsigned char* data = new unsigned char[imageSize];
+    unsigned char* ptr = data; 
 
     fseek(file, dataPos, SEEK_SET);
 
     for (int i = 0; i < height; i++) {
-        fread(data + (i * width * 3), 1, width * 3, file);
+        fread(ptr, 1, width * bytesPerPixel, file);
+        ptr += width * bytesPerPixel;
+
         if (padding > 0) {
             fseek(file, padding, SEEK_CUR);
         }
@@ -307,20 +334,25 @@ GLuint loadTexture(const char* filename) {
 
     fclose(file);
 
+
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_2D, textureID);
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); 
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-    // Create Mipmaps for better distance rendering
-    gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_BGR_EXT, GL_UNSIGNED_BYTE, data);
+
+    gluBuild2DMipmaps(GL_TEXTURE_2D, bytesPerPixel, width, height, format, GL_UNSIGNED_BYTE, data);
 
     delete[] data;
 
-    std::cout << "[Texture Success] Loaded: " << filename << " (ID: " << textureID << ")" << std::endl;
+    std::cout << "[Texture Success] Loaded: " << filename
+        << " (" << width << "x" << height << ", " << bitCount << "-bit)"
+        << " ID: " << textureID << std::endl;
+
     return textureID;
 }
 
