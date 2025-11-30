@@ -152,6 +152,22 @@ bool g_mouseLeftDown = false;
 int g_mouseX, g_mouseY;
 bool g_isRobotView = false;
 
+// Camera transition state
+bool g_cameraTransitioning = false;
+float g_cameraTransitionProgress = 0.0f;
+const float CAMERA_TRANSITION_DURATION = 1.0f; 
+
+// Store camera states for interpolation
+struct CameraState {
+    vec3 eye;
+    vec3 lookAt;
+    vec3 up;
+};
+
+CameraState g_cameraStartState;
+CameraState g_cameraEndState;
+CameraState g_currentCameraState;
+
 // Robot state
 Robot g_robot;
 //float g_robotCameraAngleY = 0.0f;
@@ -1665,38 +1681,104 @@ void drawWaterParticles() {
 // CAMERA FUNCTIONS
 // ==========================================================
 
+/**
+ * @brief Calculate the global camera state
+ */
+CameraState calculateGlobalCameraState() {
+    CameraState state;
+    float baseDistance = 20.0f;
+    float baseHeight = 8.0f;
+
+    float distance = baseDistance * g_zoomFactor;
+    float height = baseHeight * g_zoomFactor;
+
+    float angleY = g_cameraAngleY * M_PI / 180.0f;
+    float angleX = g_cameraAngleX * M_PI / 180.0f;
+
+
+    float cosX = cos(angleX);
+    float sinX = sin(angleX);
+    float cosY = cos(angleY);
+    float sinY = sin(angleY);
+
+    state.eye.x = distance * sinY * cosX;
+    state.eye.y = height + distance * sinX;
+    state.eye.z = distance * cosY * cosX;
+
+    state.lookAt = vec3_create(0.0f, 0.0f, 0.0f);
+    state.up = vec3_create(0.0f, 1.0f, 0.0f);
+
+    return state;
+}
+
+/**
+ * @brief Calculate the robot first-person view camera state
+ */
+CameraState calculateRobotCameraState() {
+    CameraState state;
+  
+    float robotGroundY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
+    float angleRad = g_robot.angleY * M_PI / 180.0f;
+    float localOffsetY = (ROBOT_CHASSIS_HEIGHT / 2.0f) + ROBOT_CAMERA_Y_OFFSET;
+    float localOffsetZ = ROBOT_CAMERA_RADIUS + 0.1f;
+  
+    float worldOffsetX = sin(angleRad) * localOffsetZ;
+    float worldOffsetZ = cos(angleRad) * localOffsetZ;
+  
+    state.eye.x = g_robot.posX + worldOffsetX;
+    state.eye.y = robotGroundY + localOffsetY;
+    state.eye.z = g_robot.posZ + worldOffsetZ;
+  
+    state.lookAt.x = state.eye.x + sin(angleRad) * 5.0f;
+    state.lookAt.y = state.eye.y;
+    state.lookAt.z = state.eye.z + cos(angleRad) * 5.0f;
+  
+    state.up = vec3_create(0.0f, 1.0f, 0.0f);
+  
+    return state;
+}
+
+/**
+ * @brief Smoothly interpolate between two camera states
+ */
+CameraState interpolateCameraState(CameraState start, CameraState end, float t) {
+    t = t * t * (3.0f - 2.0f * t);
+  
+    CameraState result;
+    result.eye = vec3_lerp(start.eye, end.eye, t);
+    result.lookAt = vec3_lerp(start.lookAt, end.lookAt, t);
+    result.up = vec3_lerp(start.up, end.up, t);
+  
+    return result;
+}
+
 void setupCamera() {
-    if (g_isRobotView) {
-        float robotGroundY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
-        float angleRad = g_robot.angleY * M_PI / 180.0f;
-        float localOffsetY = (ROBOT_CHASSIS_HEIGHT / 2.0f) + ROBOT_CAMERA_Y_OFFSET;
-        float localOffsetZ = ROBOT_CAMERA_RADIUS + 0.1f;
-
-        float worldOffsetX = sin(angleRad) * localOffsetZ;
-        float worldOffsetZ = cos(angleRad) * localOffsetZ;
-
-        vec3 eye;
-        eye.x = g_robot.posX + worldOffsetX;
-        eye.y = robotGroundY + localOffsetY;
-        eye.z = g_robot.posZ + worldOffsetZ;
-
-        vec3 lookAt;
-        lookAt.x = eye.x + sin(angleRad) * 5.0f;
-        lookAt.y = eye.y;
-        lookAt.z = eye.z + cos(angleRad) * 5.0f;
-
-        gluLookAt(eye.x, eye.y, eye.z,
-            lookAt.x, lookAt.y, lookAt.z,
-            0.0, 1.0, 0.0);
-
+    if (g_cameraTransitioning) {
+        // Use interpolated camera state
+        gluLookAt(
+            g_currentCameraState.eye.x, g_currentCameraState.eye.y, g_currentCameraState.eye.z,
+            g_currentCameraState.lookAt.x, g_currentCameraState.lookAt.y, g_currentCameraState.lookAt.z,
+            g_currentCameraState.up.x, g_currentCameraState.up.y, g_currentCameraState.up.z
+        );
+    }
+    else if (g_isRobotView) {
+        CameraState robotState = calculateRobotCameraState();
+        gluLookAt(
+            robotState.eye.x, robotState.eye.y, robotState.eye.z,
+            robotState.lookAt.x, robotState.lookAt.y, robotState.lookAt.z,
+            robotState.up.x, robotState.up.y, robotState.up.z
+        );
     }
     else {
-        // Global view with rotation and zoom
-        gluLookAt(0.0, 8.0 * g_zoomFactor, 20.0 * g_zoomFactor, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-        glRotatef(g_cameraAngleX, 1.0f, 0.0f, 0.0f);
-        glRotatef(g_cameraAngleY, 0.0f, 1.0f, 0.0f);
+        CameraState globalState = calculateGlobalCameraState();
+        gluLookAt(
+            globalState.eye.x, globalState.eye.y, globalState.eye.z,
+            globalState.lookAt.x, globalState.lookAt.y, globalState.lookAt.z,
+            globalState.up.x, globalState.up.y, globalState.up.z
+        );
     }
 }
+
 
 // ==========================================================
 // INSTRUCTION PANEL FUNCTIONS
@@ -1904,7 +1986,7 @@ void mouse(int button, int state, int x, int y) {
     }
     else if (button == 4) {  // Scroll down - zoom out
         g_zoomFactor *= 1.1f;
-        if (g_zoomFactor > 2.0f) g_zoomFactor = 2.0f;
+        if (g_zoomFactor > 1.8f) g_zoomFactor = 1.8f;
         glutPostRedisplay();
     }
 }
@@ -1952,7 +2034,23 @@ void keyboard(unsigned char key, int x, int y) {
         g_robot.angleY -= ROBOT_ROTATE_SPEED;
     }
     else if (key == 'c' || key == 'C') {
-        g_isRobotView = !g_isRobotView;
+        if (g_cameraTransitioning) {
+            return;
+        }
+
+        g_cameraTransitioning = true;
+        g_cameraTransitionProgress = 0.0f;
+
+        if (g_isRobotView) {
+            g_cameraStartState = calculateRobotCameraState();
+            g_cameraEndState = calculateGlobalCameraState();
+        }
+        else {
+            g_cameraStartState = calculateGlobalCameraState();
+            g_cameraEndState = calculateRobotCameraState();
+        }
+
+        g_currentCameraState = g_cameraStartState;
     }
     else if (key == 'p' || key == 'P') {
         isWatering = true;
@@ -2032,7 +2130,21 @@ void idle() {
     lastTime = currentTime;
 
     updateParticles(dt);
+    if (g_cameraTransitioning) {
+        g_cameraTransitionProgress += dt / CAMERA_TRANSITION_DURATION;
 
+        if (g_cameraTransitionProgress >= 1.0f) {
+            g_cameraTransitioning = false;
+            g_cameraTransitionProgress = 1.0f;
+            g_isRobotView = !g_isRobotView;
+        }
+
+        g_currentCameraState = interpolateCameraState(
+            g_cameraStartState,
+            g_cameraEndState,
+            g_cameraTransitionProgress
+        );
+    }
     // Update skimmer positions with looping
     g_skimmer1_progress += SKIMMER1_SPEED * dt;
     if (g_skimmer1_progress >= g_skimmerPath1.size()) {
