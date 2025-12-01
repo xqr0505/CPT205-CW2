@@ -42,13 +42,13 @@ const float SURROUND_DISC_DISTANCE = 12.0f;
 const float surround_heights[] = { 1.0f, -0.5f, 2.5f, -1.5f, 0.7f };
 
 // Robot constants
-const float ROBOT_CHASSIS_WIDTH = 0.8f;    
-const float ROBOT_CHASSIS_HEIGHT = 0.4f;   
-const float ROBOT_CHASSIS_DEPTH = 1.2f;   
-const float ROBOT_WHEEL_RADIUS = 0.3f;     
-const float ROBOT_WHEEL_WIDTH = 0.15f;    
-const float ROBOT_CAMERA_RADIUS = 0.25f;   
-const float ROBOT_CAMERA_Y_OFFSET = 0.3f;  
+const float ROBOT_CHASSIS_WIDTH = 0.8f;
+const float ROBOT_CHASSIS_HEIGHT = 0.4f;
+const float ROBOT_CHASSIS_DEPTH = 1.2f;
+const float ROBOT_WHEEL_RADIUS = 0.25f;
+const float ROBOT_WHEEL_WIDTH = 0.15f;
+const float ROBOT_CAMERA_RADIUS = 0.25f;
+const float ROBOT_CAMERA_Y_OFFSET = 0.3f;
 
 const float ROBOT_MOVE_SPEED = 0.1f;
 const float ROBOT_ROTATE_SPEED = 3.0f;
@@ -82,19 +82,19 @@ const float BUILDING_HEIGHT = 6.5f;
 const float BUILDING_BASE = 3.5f;
 
 // Fractal Tree constants
-const int FRACTAL_TREE_ITERATIONS = 3;       
-const float TREE_INITIAL_HEIGHT = 1.5f;       
-const float TREE_INITIAL_RADIUS = 0.1f;       
-const float TREE_HEIGHT_DECAY = 0.7f;         
-const float TREE_RADIUS_DECAY = 0.65f;        
-const float TREE_LEAF_SIZE = 0.4f;            
-const float TREE_BRANCH_ANGLE = 25.0f;        
+const int FRACTAL_TREE_ITERATIONS = 3;
+const float TREE_INITIAL_HEIGHT = 1.5f;
+const float TREE_INITIAL_RADIUS = 0.1f;
+const float TREE_HEIGHT_DECAY = 0.7f;
+const float TREE_RADIUS_DECAY = 0.65f;
+const float TREE_LEAF_SIZE = 0.4f;
+const float TREE_BRANCH_ANGLE = 25.0f;
 
 // Stone path constants
-const float STONE_WIDTH = 1.3f;      
-const float STONE_DEPTH = 0.6f;      
-const float STONE_HEIGHT = 0.05f;    
-const float GAP = 0.2f;             
+const float STONE_WIDTH = 1.3f;
+const float STONE_DEPTH = 0.6f;
+const float STONE_HEIGHT = 0.05f;
+const float GAP = 0.2f;
 // ==========================================================
 // DATA STRUCTURES
 // ==========================================================
@@ -134,7 +134,7 @@ const float g_glowColors[5][3] = {
     {1.0f, 1.0f, 0.0f}       // yellow
 };
 
-int g_currentGlowColorIndex = 0; 
+int g_currentGlowColorIndex = 0;
 const int TOTAL_COLORS = 5;
 
 
@@ -145,8 +145,8 @@ const int TOTAL_COLORS = 5;
 // Window and camera state
 int g_windowWidth = 800;
 int g_windowHeight = 600;
-float g_cameraAngleY = 0.0f;
-float g_cameraAngleX = 0.0f;
+float g_cameraAngleY = -5.0f;
+float g_cameraAngleX = 15.0f;
 float g_zoomFactor = 1.0f;
 bool g_mouseLeftDown = false;
 int g_mouseX, g_mouseY;
@@ -155,7 +155,7 @@ bool g_isRobotView = false;
 // Camera transition state
 bool g_cameraTransitioning = false;
 float g_cameraTransitionProgress = 0.0f;
-const float CAMERA_TRANSITION_DURATION = 1.0f; 
+const float CAMERA_TRANSITION_DURATION = 1.0f;
 
 // Store camera states for interpolation
 struct CameraState {
@@ -171,8 +171,8 @@ CameraState g_currentCameraState;
 // Robot state
 Robot g_robot;
 //float g_robotCameraAngleY = 0.0f;
-bool g_robotLightOn = true;         
-float g_robotLightBrightness = 1.0f;   
+bool g_robotLightOn = true;
+float g_robotLightBrightness = 1.0f;
 
 // Global lighting state
 bool g_envLightOn = true;
@@ -195,7 +195,7 @@ std::vector<vec3> g_skimmerPath2;
 Particle waterParticles[MAX_PARTICLES];
 
 // Fractal Tree state
-std::string g_fractalTreeGrammar; 
+std::string g_fractalTreeGrammar;
 
 // Texture IDs
 GLuint g_texTreeBark = 0;
@@ -310,15 +310,15 @@ GLuint loadTexture(const char* filename) {
     int width = *(int*)&(header[0x12]);
     int height = *(int*)&(header[0x16]);
     unsigned int dataPos = *(unsigned int*)&(header[0x0A]);
-    if (dataPos == 0) dataPos = 54; 
+    if (dataPos == 0) dataPos = 54;
 
     //3 for RGB, 4 for RGBA
     int bytesPerPixel = 0;
-    GLenum format; 
+    GLenum format;
 
     if (bitCount == 24) {
         bytesPerPixel = 3;
-        format = GL_BGR_EXT; 
+        format = GL_BGR_EXT;
     }
     else if (bitCount == 32) {
         bytesPerPixel = 4;
@@ -335,7 +335,7 @@ GLuint loadTexture(const char* filename) {
     int padding = rowSizePadded - (width * bytesPerPixel);
 
     unsigned char* data = new unsigned char[imageSize];
-    unsigned char* ptr = data; 
+    unsigned char* ptr = data;
 
     fseek(file, dataPos, SEEK_SET);
 
@@ -354,7 +354,7 @@ GLuint loadTexture(const char* filename) {
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_2D, textureID);
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); 
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -410,7 +410,7 @@ void calculateRobotLightWorldDirection(GLdouble outDir[3]) {
     float angleRad = g_robot.angleY * M_PI / 180.0f;
 
     outDir[0] = sin(angleRad);
-    outDir[1] = 0.0f;  
+    outDir[1] = 0.0f;
     outDir[2] = cos(angleRad);
 }
 
@@ -452,15 +452,15 @@ void setupLights() {
         // Light direction: forward direction of the robot
         GLfloat light1_direction[] = {
             sin(angleRad),
-            0.0f,  
+            0.0f,
             cos(angleRad)
         };
 
         // Set light properties
         glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
         glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, light1_direction);
-        glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 35.0f);      
-        glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, 15.0f);    
+        glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 35.0f);
+        glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, 15.0f);
 
         // Set light attenuation
         glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, 0.5f);
@@ -682,13 +682,13 @@ void generateFractalTreeGrammar() {
                 nextString += rule; // apply rules
             }
             else {
-                nextString += c; 
+                nextString += c;
             }
         }
         currentString = nextString;
     }
     g_fractalTreeGrammar = currentString;
- 
+
 }
 
 /**
@@ -705,9 +705,9 @@ void drawTreeLeaf(float size) {
     glBegin(GL_QUADS);
     glNormal3f(0.0f, 0.0f, 1.0f);
 
-    glTexCoord2f(0.5f, 0.0f); glVertex3f(0, 0, 0);             
-    glTexCoord2f(1.0f, 0.5f); glVertex3f(size / 2.0f, size, 0); 
-    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, size * 2.0f, 0);   
+    glTexCoord2f(0.5f, 0.0f); glVertex3f(0, 0, 0);
+    glTexCoord2f(1.0f, 0.5f); glVertex3f(size / 2.0f, size, 0);
+    glTexCoord2f(0.5f, 1.0f); glVertex3f(0, size * 2.0f, 0);
     glTexCoord2f(0.0f, 0.5f); glVertex3f(-size / 2.0f, size, 0);
     glEnd();
 
@@ -716,7 +716,7 @@ void drawTreeLeaf(float size) {
 
 /**
  * @brief Renders a single tree branch segment (cylinder)
- * @param radius Base 
+ * @param radius Base
  * @param height
  */
 void drawTreeBranch(float radius, float height) {
@@ -725,7 +725,7 @@ void drawTreeBranch(float radius, float height) {
     glRotatef(-90, 1.0f, 0.0f, 0.0f);
 
     GLUquadric* quad = gluNewQuadric();
-    gluQuadricTexture(quad, GL_TRUE); 
+    gluQuadricTexture(quad, GL_TRUE);
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, g_texTreeBark);
@@ -744,10 +744,10 @@ void drawTreeBranch(float radius, float height) {
  */
 void drawFractalTree() {
     if (g_fractalTreeGrammar.empty()) return;
-    
+
     // Fixed seed for consistent random leaf orientations
     srand(0);
-    
+
     float currentHeight = TREE_INITIAL_HEIGHT;
     float currentRadius = TREE_INITIAL_RADIUS;
 
@@ -761,8 +761,8 @@ void drawFractalTree() {
 
             setTreeLeafMaterial();
             glPushMatrix();
-            glRotatef(rand() % 360, 0.0f, 1.0f, 0.0f);        
-            glRotatef((rand() % 40) - 20, 1.0f, 0.0f, 0.0f);  
+            glRotatef(rand() % 360, 0.0f, 1.0f, 0.0f);
+            glRotatef((rand() % 40) - 20, 1.0f, 0.0f, 0.0f);
             drawTreeLeaf(TREE_LEAF_SIZE);
             glPopMatrix();
             break;
@@ -786,9 +786,9 @@ void drawFractalTree() {
         case '^': glRotatef(-TREE_BRANCH_ANGLE, 0.0f, 1.0f, 0.0f); break; // Yaw right
         case '/': glRotatef(TREE_BRANCH_ANGLE, 0.0f, 0.0f, 1.0f); break;  // Roll clockwise
         case '\\': glRotatef(-TREE_BRANCH_ANGLE, 0.0f, 0.0f, 1.0f); break;// Roll counter-clockwise
-            
+
         default:
-            break; 
+            break;
         }
     }
     resetMaterial();
@@ -815,9 +815,9 @@ void drawBush() {
         { 4, 9, 5 },{ 2, 4, 11 },{ 6, 2, 10 },{ 8, 6, 7 },{ 9, 8, 1 }
     };
 
-    
+
     glEnable(GL_TEXTURE_2D);
-	// Bind bush texture
+    // Bind bush texture
     glBindTexture(GL_TEXTURE_2D, g_texBush);
 
     if (g_texBush != 0) glColor3f(1.0f, 1.0f, 1.0f);
@@ -829,18 +829,18 @@ void drawBush() {
         const GLfloat* ptr2 = vertices[faces[i][1]];
         const GLfloat* ptr3 = vertices[faces[i][2]];
         glNormal3fv(ptr1);
-        if (i % 2 == 0) glTexCoord2f(0.5f, 1.0f); 
-        else            glTexCoord2f(0.0f, 0.0f); 
+        if (i % 2 == 0) glTexCoord2f(0.5f, 1.0f);
+        else            glTexCoord2f(0.0f, 0.0f);
         glVertex3fv(ptr1);
 
         glNormal3fv(ptr2);
-        if (i % 2 == 0) glTexCoord2f(0.0f, 0.0f); 
-        else            glTexCoord2f(1.0f, 0.0f); 
+        if (i % 2 == 0) glTexCoord2f(0.0f, 0.0f);
+        else            glTexCoord2f(1.0f, 0.0f);
         glVertex3fv(ptr2);
 
         glNormal3fv(ptr3);
-        if (i % 2 == 0) glTexCoord2f(1.0f, 0.0f); 
-        else            glTexCoord2f(0.5f, 1.0f); 
+        if (i % 2 == 0) glTexCoord2f(1.0f, 0.0f);
+        else            glTexCoord2f(0.5f, 1.0f);
         glVertex3fv(ptr3);
     }
     glEnd();
@@ -1071,8 +1071,8 @@ void calculateNozzleWorldPosition(float baseRot, float lowerArmRot, float upperA
  * @brief draw a building of specified type
  */
 void drawBuilding(int type) {
-    float bWidth, bHeight; 
-    int floors;           
+    float bWidth, bHeight;
+    int floors;
     GLfloat r = g_glowColors[g_currentGlowColorIndex][0];
     GLfloat g = g_glowColors[g_currentGlowColorIndex][1];
     GLfloat b = g_glowColors[g_currentGlowColorIndex][2];
@@ -1491,8 +1491,8 @@ void drawRobotCameraHead() {
 
         // Apply glow material based on light brightness
         if (g_robotLightOn && g_robotLightBrightness > 0.0f) {
-            float startR = 0.5f, startG = 0.5f, startB = 0.45f;  
-            float endR = 1.0f, endG = 0.9f, endB = 0.7f;         
+            float startR = 0.5f, startG = 0.5f, startB = 0.45f;
+            float endR = 1.0f, endG = 0.9f, endB = 0.7f;
 
             // Linear interpolation based on brightness
             float r = startR + g_robotLightBrightness * (endR - startR);
@@ -1689,24 +1689,38 @@ CameraState calculateGlobalCameraState() {
     float baseDistance = 20.0f;
     float baseHeight = 8.0f;
 
-    float distance = baseDistance * g_zoomFactor;
-    float height = baseHeight * g_zoomFactor;
+    float radius = sqrt(baseDistance * baseDistance + baseHeight * baseHeight) * g_zoomFactor;
 
     float angleY = g_cameraAngleY * M_PI / 180.0f;
     float angleX = g_cameraAngleX * M_PI / 180.0f;
 
+    float clampedAngleX = angleX;
+    if (clampedAngleX > 89.9f) {
+        clampedAngleX = 89.9f;
+    }
+    if (clampedAngleX < -89.9f) {
+        clampedAngleX = -89.9f;
+    }
 
-    float cosX = cos(angleX);
-    float sinX = sin(angleX);
-    float cosY = cos(angleY);
-    float sinY = sin(angleY);
 
-    state.eye.x = distance * sinY * cosX;
-    state.eye.y = height + distance * sinX;
-    state.eye.z = distance * cosY * cosX;
+    float phi = M_PI / 2.0f - clampedAngleX;
+    state.eye.x = radius * sin(phi) * sin(angleY);
+    state.eye.y = radius * cos(phi);
+    state.eye.z = radius * sin(phi) * cos(angleY);
 
     state.lookAt = vec3_create(0.0f, 0.0f, 0.0f);
-    state.up = vec3_create(0.0f, 1.0f, 0.0f);
+
+    if (fabs(clampedAngleX) > M_PI / 2.0f - 0.1f) {
+        vec3 forward = vec3_normalize(vec3_sub(state.lookAt, state.eye));
+        vec3 right = vec3_normalize(vec3_create(cos(angleY), 0.0f, -sin(angleY)));
+
+        state.up.x = right.y * forward.z - right.z * forward.y;
+        state.up.y = right.z * forward.x - right.x * forward.z;
+        state.up.z = right.x * forward.y - right.y * forward.x;
+    }
+    else {
+        state.up = vec3_create(0.0f, 1.0f, 0.0f);
+    }
 
     return state;
 }
@@ -1716,25 +1730,25 @@ CameraState calculateGlobalCameraState() {
  */
 CameraState calculateRobotCameraState() {
     CameraState state;
-  
+
     float robotGroundY = (CENTRAL_DISC_HEIGHT / 2.0f) + ROBOT_WHEEL_RADIUS;
     float angleRad = g_robot.angleY * M_PI / 180.0f;
     float localOffsetY = (ROBOT_CHASSIS_HEIGHT / 2.0f) + ROBOT_CAMERA_Y_OFFSET;
     float localOffsetZ = ROBOT_CAMERA_RADIUS + 0.1f;
-  
+
     float worldOffsetX = sin(angleRad) * localOffsetZ;
     float worldOffsetZ = cos(angleRad) * localOffsetZ;
-  
+
     state.eye.x = g_robot.posX + worldOffsetX;
     state.eye.y = robotGroundY + localOffsetY;
     state.eye.z = g_robot.posZ + worldOffsetZ;
-  
+
     state.lookAt.x = state.eye.x + sin(angleRad) * 5.0f;
     state.lookAt.y = state.eye.y;
     state.lookAt.z = state.eye.z + cos(angleRad) * 5.0f;
-  
+
     state.up = vec3_create(0.0f, 1.0f, 0.0f);
-  
+
     return state;
 }
 
@@ -1742,19 +1756,21 @@ CameraState calculateRobotCameraState() {
  * @brief Smoothly interpolate between two camera states
  */
 CameraState interpolateCameraState(CameraState start, CameraState end, float t) {
-    t = t * t * (3.0f - 2.0f * t);
-  
+    
+    // SmoothStep interpolate
+    t = t * t * 3.0f - t * t * t * 2.0f ;
+
     CameraState result;
     result.eye = vec3_lerp(start.eye, end.eye, t);
     result.lookAt = vec3_lerp(start.lookAt, end.lookAt, t);
     result.up = vec3_lerp(start.up, end.up, t);
-  
+
     return result;
 }
 
+
 void setupCamera() {
     if (g_cameraTransitioning) {
-        // Use interpolated camera state
         gluLookAt(
             g_currentCameraState.eye.x, g_currentCameraState.eye.y, g_currentCameraState.eye.z,
             g_currentCameraState.lookAt.x, g_currentCameraState.lookAt.y, g_currentCameraState.lookAt.z,
@@ -1995,12 +2011,12 @@ void motion(int x, int y) {
     if (g_mouseLeftDown && !g_isRobotView) {
         int dx = x - g_mouseX;
         int dy = y - g_mouseY;
-        g_cameraAngleY += dx * 0.5f;
+        g_cameraAngleY -= dx * 0.5f;
         g_cameraAngleX += dy * 0.5f;
 
         // Clamp vertical rotation
-        if (g_cameraAngleX > 90.0f) g_cameraAngleX = 90.0f;
-        if (g_cameraAngleX < -90.0f) g_cameraAngleX = -90.0f;
+        if (g_cameraAngleX > 89.9f) g_cameraAngleX = 89.9f;
+        if (g_cameraAngleX < -89.9f) g_cameraAngleX = -89.9f;
 
         g_mouseX = x;
         g_mouseY = y;
@@ -2130,6 +2146,7 @@ void idle() {
     lastTime = currentTime;
 
     updateParticles(dt);
+
     if (g_cameraTransitioning) {
         g_cameraTransitionProgress += dt / CAMERA_TRANSITION_DURATION;
 
@@ -2185,7 +2202,7 @@ void onMenu(int item) {
     case MENU_COLOR_YELLO: g_currentGlowColorIndex = 4; break;
     }
 
-    glutPostRedisplay(); 
+    glutPostRedisplay();
 }
 
 void setupMenus() {
